@@ -1,0 +1,48 @@
+name: herseyim
+description: Her Şeyim - Akıllı Yaşam Asistanı
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  provider: ^6.1.1
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  intl: ^0.20.2
+  shared_preferences: ^2.2.3
+  uuid: ^4.3.3
+  table_calendar: ^3.1.1
+  google_fonts: ^6.2.1
+  flutter_contacts: ^1.1.9+2
+  url_launcher: ^6.3.1
+  android_intent_plus: ^5.1.0
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  hive_generator: ^2.0.1
+  build_runner: ^2.4.8
+  flutter_launcher_icons: ^0.14.3
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icon/icon.png
+    - assets/icon/icon_white.png
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#1F3864"
+  adaptive_icon_foreground: "assets/icon/icon.png"
