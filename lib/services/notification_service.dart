@@ -1,7 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
+import '../models/reminder_model.dart';
+
+@pragma('vm:entry-point')
+Future<void> _handleReminderAction(String? actionId, String? payload) async {
+  if (payload == null || actionId == null) return;
+
+  try {
+    if (!Hive.isAdapterRegistered(2)) {
+      Hive.registerAdapter(ReminderAdapter());
+    }
+    final box = Hive.isBoxOpen('reminders')
+        ? Hive.box<Reminder>('reminders')
+        : await Hive.openBox<Reminder>('reminders');
+
+    final reminder = box.get(payload);
+    if (reminder == null) return;
+
+    if (actionId == 'mark_complete') {
+      reminder.isCompleted = true;
+      await reminder.save();
+      await NotificationService.instance.cancelNotification(reminder.id);
+    } else if (actionId == 'snooze') {
+      final newTime = DateTime.now().add(Duration(minutes: reminder.snoozeMinutes));
+      reminder.scheduledAt = newTime;
+      await reminder.save();
+      await NotificationService.instance.scheduleNotification(
+        id: reminder.id,
+        title: reminder.title,
+        body: reminder.type,
+        scheduledAt: newTime,
+      );
+    }
+  } catch (e) {
+    // Arka plan izolasyonunda sessizce yut, uygulamayı etkilemesin
+  }
+}
+
+@pragma('vm:entry-point')
+void notificationBackgroundHandler(NotificationResponse response) {
+  _handleReminderAction(response.actionId, response.payload);
+}
 
 class NotificationService {
   NotificationService._();
@@ -26,8 +68,13 @@ class NotificationService {
     await _plugin.initialize(
       initSettings,
       onDidReceiveNotificationResponse: (details) {
-        onReminderNotificationTap?.call(details.payload);
+        if (details.actionId != null) {
+          _handleReminderAction(details.actionId, details.payload);
+        } else {
+          onReminderNotificationTap?.call(details.payload);
+        }
       },
+      onDidReceiveBackgroundNotificationResponse: notificationBackgroundHandler,
     );
     _initialized = true;
   }
@@ -58,7 +105,7 @@ class NotificationService {
     final notifId = id.hashCode;
     final scheduledDate = tz.TZDateTime.from(scheduledAt, tz.local);
 
-    const androidDetails = AndroidNotificationDetails(
+    final androidDetails = AndroidNotificationDetails(
       'reminders_channel_v2',
       'Hatırlatıcılar',
       channelDescription: 'Hatırlatıcı bildirimleri',
@@ -66,8 +113,12 @@ class NotificationService {
       priority: Priority.high,
       playSound: true,
       enableVibration: true,
+      actions: const <AndroidNotificationAction>[
+        AndroidNotificationAction('mark_complete', 'Tamamlandı', showsUserInterface: false),
+        AndroidNotificationAction('snooze', 'Ertele', showsUserInterface: false),
+      ],
     );
-    const details = NotificationDetails(android: androidDetails);
+    final details = NotificationDetails(android: androidDetails);
 
     DateTimeComponents? matchComponents;
     if (repeatPeriod == 'Günlük') {
