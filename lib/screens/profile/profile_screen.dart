@@ -36,10 +36,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   _buildSectionHeader('Profiller'),
                   const SizedBox(height: 8),
-                  ...profiles.map(
-                      (p) => _buildProfileCard(context, p, profileProvider)),
-                  const SizedBox(height: 8),
-                  _buildAddProfileButton(context),
+                  _buildProfileAvatarRow(context, profiles, profileProvider),
                   const SizedBox(height: 24),
                   _buildSectionHeader('Ayarlar'),
                   const SizedBox(height: 8),
@@ -72,7 +69,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Row(
                   children: [
-                    Image.asset('assets/icon/icon_white.png', width: 20, height: 20),
+                    Image.asset('assets/icon/icon_white.png',
+                        width: 20, height: 20),
                     const SizedBox(width: 8),
                     const Text('Profil & Ayarlar',
                         style: TextStyle(
@@ -254,162 +252,158 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileCard(
-      BuildContext context, Profile profile, ProfileProvider provider) {
-    final color = Color(profile.colorValue);
-    final isDefault = profile.id == 'personal' || profile.id == 'work';
+  Widget _buildProfileAvatarRow(
+      BuildContext context, List<Profile> profiles, ProfileProvider provider) {
+    const itemWidth = 68.0;
+    const itemSpacing = 16.0;
+    const slot = itemWidth + itemSpacing;
+    final totalItems = profiles.length + 1; // +1 "Yeni Ekle"
+    final totalContentWidth = totalItems * slot;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.divider, width: 0.5),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 1)),
-        ],
-      ),
-      child: Column(
-        children: [
-          ListTile(
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            leading: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-                border:
-                    Border.all(color: color.withValues(alpha: 0.4), width: 1.5),
-              ),
-              child: Icon(
-                profile.type == 'personal'
-                    ? Icons.person
-                    : profile.type == 'work'
-                        ? Icons.work
-                        : Icons.star_outline,
-                color: color,
-                size: 22,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        debugPrint(
+            'AVATAR ROW v2: maxWidth=${constraints.maxWidth}, totalContentWidth=$totalContentWidth, profileCount=${profiles.length}');
+        double? forcedWidth;
+        if (totalContentWidth > constraints.maxWidth) {
+          final fullSlots = (constraints.maxWidth / slot).floor();
+          forcedWidth = fullSlots * slot + (itemWidth / 2);
+          if (forcedWidth > totalContentWidth) {
+            forcedWidth = totalContentWidth;
+          }
+          if (forcedWidth < slot) {
+            forcedWidth = slot; // en az bir tam öğe göster
+          }
+        }
+
+        return Align(
+          alignment: Alignment.centerLeft,
+          child: SizedBox(
+            height: 92,
+            width: forcedWidth,
+            child: ClipRect(
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  ...profiles.map((p) => Padding(
+                        padding: const EdgeInsets.only(right: itemSpacing),
+                        child: _buildProfileAvatar(context, p, provider),
+                      )),
+                  _buildAddProfileAvatar(context),
+                ],
               ),
             ),
-            title: Text(
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildProfileAvatar(
+      BuildContext context, Profile profile, ProfileProvider provider) {
+    final color = Color(profile.colorValue);
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProfileDetailScreen(profile: profile),
+          ),
+        );
+      },
+      child: SizedBox(
+        width: 68,
+        child: Column(
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                        color: color.withValues(alpha: 0.4), width: 1.5),
+                  ),
+                  child: Icon(
+                    profile.type == 'personal'
+                        ? Icons.person
+                        : profile.type == 'work'
+                            ? Icons.work
+                            : Icons.star_outline,
+                    color: color,
+                    size: 26,
+                  ),
+                ),
+                Positioned(
+                  bottom: -2,
+                  right: -2,
+                  child: GestureDetector(
+                    onTap: () =>
+                        showEditProfileDialog(context, profile, provider),
+                    child: Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: AppColors.brand,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      child:
+                          const Icon(Icons.edit, size: 11, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
               profile.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
               ),
             ),
-            subtitle: Text(
-              profile.type == 'personal'
-                  ? 'Kişisel profil'
-                  : profile.type == 'work'
-                      ? 'İş profili'
-                      : 'Özel profil',
-              style:
-                  const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  onTap: () =>
-                      _showEditProfileDialog(context, profile, provider),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.brandLight,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.edit_outlined,
-                        size: 16, color: AppColors.brand),
-                  ),
-                ),
-                if (!isDefault) ...[
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () => _confirmDelete(context, profile, provider),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.dangerBg,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.delete_outline,
-                          size: 16, color: AppColors.dangerText),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          // Kartvizit butonu
-          const Divider(
-              height: 1,
-              thickness: 0.5,
-              indent: 16,
-              endIndent: 16,
-              color: AppColors.divider),
-          InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ProfileDetailScreen(profile: profile),
-                ),
-              );
-            },
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(12),
-              bottomRight: Radius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Row(
-                children: [
-                  Icon(Icons.contact_page_outlined, size: 16, color: color),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Kartvizit & İletişim Bilgileri',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: color,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(Icons.chevron_right, size: 16, color: color),
-                ],
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildAddProfileButton(BuildContext context) {
+  Widget _buildAddProfileAvatar(BuildContext context) {
     return GestureDetector(
       onTap: () => _showAddProfileDialog(context),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.brandBorder, width: 1),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+      child: SizedBox(
+        width: 68,
+        child: Column(
           children: [
-            Icon(Icons.add, size: 18, color: AppColors.brand),
-            SizedBox(width: 8),
-            Text('Yeni Profil Ekle',
-                style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.brand)),
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.brandBorder, width: 1.5),
+              ),
+              child: const Icon(Icons.add, color: AppColors.brand, size: 26),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Yeni Ekle',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: AppColors.brand,
+              ),
+            ),
           ],
         ),
       ),
@@ -614,8 +608,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 8),
             const Text(
                 'Bugün ekranında kaç günlük yaklaşan kayıtlar gösterilsin?',
-                style:
-                    TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 textAlign: TextAlign.center),
             const SizedBox(height: 16),
             ...[
@@ -661,8 +654,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     int selectedColor = 0xFF1F3864;
 
     final colors = [
-      0xFF1F3864, 0xFF185FA5, 0xFF27500A, 0xFF633806,
-      0xFF791F1F, 0xFF444441, 0xFF6B21A8, 0xFF0F766E,
+      0xFF1F3864,
+      0xFF185FA5,
+      0xFF27500A,
+      0xFF633806,
+      0xFF791F1F,
+      0xFF444441,
+      0xFF6B21A8,
+      0xFF0F766E,
     ];
 
     showModalBottomSheet(
@@ -671,138 +670,142 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
-          padding: EdgeInsets.only(
-              bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
           child: Container(
             decoration: const BoxDecoration(
               color: AppColors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40, height: 4,
-                    decoration: BoxDecoration(
-                        color: AppColors.grayBorder,
-                        borderRadius: BorderRadius.circular(2)),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text('Yeni Profil',
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary)),
-                const SizedBox(height: 16),
-                const Text('Profil Adı',
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: nameController,
-                  autofocus: true,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    hintText: 'Örn: Freelance, Aile...',
-                    filled: true,
-                    fillColor: AppColors.surface,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AppColors.divider),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide:
-                          const BorderSide(color: AppColors.brand, width: 1.5),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                          color: AppColors.grayBorder,
+                          borderRadius: BorderRadius.circular(2)),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                const Text('Tür',
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary)),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    _typeChip('personal', 'Kişisel', selectedType,
-                        (v) => setS(() => selectedType = v)),
-                    const SizedBox(width: 8),
-                    _typeChip('work', 'İş', selectedType,
-                        (v) => setS(() => selectedType = v)),
-                    const SizedBox(width: 8),
-                    _typeChip('custom', 'Özel', selectedType,
-                        (v) => setS(() => selectedType = v)),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const Text('Renk',
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: colors.map((c) {
-                    final isSel = selectedColor == c;
-                    return GestureDetector(
-                      onTap: () => setS(() => selectedColor = c),
-                      child: Container(
-                        width: 38, height: 38,
-                        decoration: BoxDecoration(
-                          color: Color(c),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSel
-                                ? AppColors.textPrimary
-                                : Colors.transparent,
-                            width: 2.5,
-                          ),
-                        ),
-                        child: isSel
-                            ? const Icon(Icons.check,
-                                color: Colors.white, size: 18)
-                            : null,
+                  const SizedBox(height: 16),
+                  const Text('Yeni Profil',
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary)),
+                  const SizedBox(height: 16),
+                  const Text('Profil Adı',
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: nameController,
+                    autofocus: true,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                      hintText: 'Örn: Freelance, Aile...',
+                      filled: true,
+                      fillColor: AppColors.surface,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppColors.divider),
                       ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('İptal',
-                          style: TextStyle(color: AppColors.textSecondary)),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                            color: AppColors.brand, width: 1.5),
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () {
-                        if (nameController.text.trim().isEmpty) return;
-                        context.read<ProfileProvider>().add(Profile(
-                              id: '',
-                              name: nameController.text.trim(),
-                              type: selectedType,
-                              colorValue: selectedColor,
-                              createdAt: DateTime.now(),
-                            ));
-                        Navigator.pop(ctx);
-                      },
-                      child: const Text('Ekle'),
-                    ),
-                  ],
-                ),
-              ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Tür',
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary)),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      _typeChip('personal', 'Kişisel', selectedType,
+                          (v) => setS(() => selectedType = v)),
+                      const SizedBox(width: 8),
+                      _typeChip('work', 'İş', selectedType,
+                          (v) => setS(() => selectedType = v)),
+                      const SizedBox(width: 8),
+                      _typeChip('custom', 'Özel', selectedType,
+                          (v) => setS(() => selectedType = v)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Renk',
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: colors.map((c) {
+                      final isSel = selectedColor == c;
+                      return GestureDetector(
+                        onTap: () => setS(() => selectedColor = c),
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: Color(c),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSel
+                                  ? AppColors.textPrimary
+                                  : Colors.transparent,
+                              width: 2.5,
+                            ),
+                          ),
+                          child: isSel
+                              ? const Icon(Icons.check,
+                                  color: Colors.white, size: 18)
+                              : null,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('İptal',
+                            style: TextStyle(color: AppColors.textSecondary)),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (nameController.text.trim().isEmpty) return;
+                          context.read<ProfileProvider>().add(Profile(
+                                id: '',
+                                name: nameController.text.trim(),
+                                type: selectedType,
+                                colorValue: selectedColor,
+                                createdAt: DateTime.now(),
+                              ));
+                          Navigator.pop(ctx);
+                        },
+                        child: const Text('Ekle'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -810,38 +813,96 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showEditProfileDialog(
-      BuildContext context, Profile profile, ProfileProvider provider) {
-    final nameController = TextEditingController(text: profile.name);
-    int selectedColor = profile.colorValue;
-    String selectedType = profile.type;
-
-    final colors = [
-      0xFF1F3864, 0xFF185FA5, 0xFF27500A, 0xFF633806,
-      0xFF791F1F, 0xFF444441, 0xFF6B21A8, 0xFF0F766E,
-    ];
-
-    showModalBottomSheet(
+  void _confirmClearCompleted(BuildContext context) {
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setS) => Padding(
-          padding: EdgeInsets.only(
-              bottom: MediaQuery.of(ctx).viewInsets.bottom),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Tamamlananları Temizle',
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary)),
+        content: const Text(
+          'Tamamlanmış tüm görevler ve hatırlatıcılar silinecek. Bu işlem geri alınamaz.',
+          style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('İptal',
+                style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style:
+                ElevatedButton.styleFrom(backgroundColor: AppColors.dangerText),
+            onPressed: () {
+              final taskProvider = context.read<TaskProvider>();
+              final reminderProvider = context.read<ReminderProvider>();
+              final completed = taskProvider.all
+                  .where((t) => t.status == 'Tamamlandı')
+                  .toList();
+              for (final t in completed) {
+                taskProvider.delete(t.id);
+              }
+              final completedReminders =
+                  reminderProvider.all.where((r) => r.isCompleted).toList();
+              for (final r in completedReminders) {
+                reminderProvider.delete(r.id);
+              }
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Tamamlananlar temizlendi')),
+              );
+            },
+            child: const Text('Temizle', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+void showEditProfileDialog(
+    BuildContext context, Profile profile, ProfileProvider provider) {
+  final nameController = TextEditingController(text: profile.name);
+  int selectedColor = profile.colorValue;
+  String selectedType = profile.type;
+
+  final colors = [
+    0xFF1F3864,
+    0xFF185FA5,
+    0xFF27500A,
+    0xFF633806,
+    0xFF791F1F,
+    0xFF444441,
+    0xFF6B21A8,
+    0xFF0F766E,
+  ];
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setS) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Center(
                   child: Container(
-                    width: 40, height: 4,
+                    width: 40,
+                    height: 4,
                     decoration: BoxDecoration(
                         color: AppColors.grayBorder,
                         borderRadius: BorderRadius.circular(2)),
@@ -912,7 +973,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     return GestureDetector(
                       onTap: () => setS(() => selectedColor = c),
                       child: Container(
-                        width: 38, height: 38,
+                        width: 38,
+                        height: 38,
                         decoration: BoxDecoration(
                           color: Color(c),
                           shape: BoxShape.circle,
@@ -931,7 +993,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     );
                   }).toList(),
                 ),
-                const SizedBox(height: 20),
+                if (profile.id != 'personal' && profile.id != 'work') ...[
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      confirmDeleteProfile(context, profile, provider);
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_outline,
+                              size: 16, color: AppColors.dangerText),
+                          SizedBox(width: 8),
+                          Text('Profili Sil',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.dangerText,
+                                  fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -959,117 +1045,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Widget _typeChip(String value, String label, String selected,
-      ValueChanged<String> onChanged) {
-    final isSelected = selected == value;
-    return GestureDetector(
-      onTap: () => onChanged(value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.brand : AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-              color: isSelected ? AppColors.brand : AppColors.divider),
-        ),
-        child: Text(label,
-            style: TextStyle(
-              fontSize: 13,
-              color: isSelected ? Colors.white : AppColors.textSecondary,
-              fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
-            )),
+Widget _typeChip(String value, String label, String selected,
+    ValueChanged<String> onChanged) {
+  final isSelected = selected == value;
+  return GestureDetector(
+    onTap: () => onChanged(value),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: isSelected ? AppColors.brand : AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border:
+            Border.all(color: isSelected ? AppColors.brand : AppColors.divider),
       ),
-    );
-  }
+      child: Text(label,
+          style: TextStyle(
+            fontSize: 13,
+            color: isSelected ? Colors.white : AppColors.textSecondary,
+            fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
+          )),
+    ),
+  );
+}
 
-  void _confirmDelete(
-      BuildContext context, Profile profile, ProfileProvider provider) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Profili Sil',
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary)),
-        content: Text(
-          '"${profile.name}" profilini silmek istediğinize emin misiniz? Bu profile ait veriler etkilenmez.',
-          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('İptal',
-                style: TextStyle(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            style:
-                ElevatedButton.styleFrom(backgroundColor: AppColors.dangerText),
-            onPressed: () {
-              provider.delete(profile.id);
-              Navigator.pop(context);
-            },
-            child: const Text('Sil', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+void confirmDeleteProfile(
+    BuildContext context, Profile profile, ProfileProvider provider,
+    {VoidCallback? onDeleted}) {
+  showDialog(
+    context: context,
+    builder: (_) => AlertDialog(
+      backgroundColor: AppColors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text('Profili Sil',
+          style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary)),
+      content: Text(
+        '"${profile.name}" profilini silmek istediğinize emin misiniz? Bu profile ait veriler etkilenmez.',
+        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
       ),
-    );
-  }
-
-  void _confirmClearCompleted(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Tamamlananları Temizle',
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary)),
-        content: const Text(
-          'Tamamlanmış tüm görevler ve hatırlatıcılar silinecek. Bu işlem geri alınamaz.',
-          style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('İptal',
+              style: TextStyle(color: AppColors.textSecondary)),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('İptal',
-                style: TextStyle(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            style:
-                ElevatedButton.styleFrom(backgroundColor: AppColors.dangerText),
-            onPressed: () {
-              final taskProvider = context.read<TaskProvider>();
-              final reminderProvider = context.read<ReminderProvider>();
-              final completed = taskProvider.all
-                  .where((t) => t.status == 'Tamamlandı')
-                  .toList();
-              for (final t in completed) {
-                taskProvider.delete(t.id);
-              }
-              final completedReminders =
-                  reminderProvider.all.where((r) => r.isCompleted).toList();
-              for (final r in completedReminders) {
-                reminderProvider.delete(r.id);
-              }
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Tamamlananlar temizlendi')),
-              );
-            },
-            child: const Text('Temizle', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
+        ElevatedButton(
+          style:
+              ElevatedButton.styleFrom(backgroundColor: AppColors.dangerText),
+          onPressed: () {
+            provider.delete(profile.id);
+            Navigator.pop(context);
+            onDeleted?.call();
+          },
+          child: const Text('Sil', style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    ),
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1227,6 +1265,44 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
           ],
         ),
         actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
+            onSelected: (value) {
+              final provider = context.read<ProfileProvider>();
+              if (value == 'edit') {
+                showEditProfileDialog(context, widget.profile, provider);
+              } else if (value == 'delete') {
+                confirmDeleteProfile(context, widget.profile, provider,
+                    onDeleted: () => Navigator.pop(context));
+              }
+            },
+            itemBuilder: (ctx) => [
+              const PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_outlined, size: 18, color: AppColors.brand),
+                    SizedBox(width: 10),
+                    Text('Profili Düzenle'),
+                  ],
+                ),
+              ),
+              if (widget.profile.id != 'personal' &&
+                  widget.profile.id != 'work')
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline,
+                          size: 18, color: AppColors.dangerText),
+                      SizedBox(width: 10),
+                      Text('Profili Sil',
+                          style: TextStyle(color: AppColors.dangerText)),
+                    ],
+                  ),
+                ),
+            ],
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: _saving

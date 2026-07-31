@@ -4,12 +4,14 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 import '../models/reminder_model.dart';
+import '../providers/reminder_provider.dart';
 
 @pragma('vm:entry-point')
 Future<void> _handleReminderAction(String? actionId, String? payload) async {
   if (payload == null || actionId == null) return;
 
   try {
+    await Hive.initFlutter();
     if (!Hive.isAdapterRegistered(2)) {
       Hive.registerAdapter(ReminderAdapter());
     }
@@ -23,11 +25,14 @@ Future<void> _handleReminderAction(String? actionId, String? payload) async {
     if (actionId == 'mark_complete') {
       reminder.isCompleted = true;
       await reminder.save();
+      ReminderProvider.instance?.notifyChanges();
       await NotificationService.instance.cancelNotification(reminder.id);
     } else if (actionId == 'snooze') {
-      final newTime = DateTime.now().add(Duration(minutes: reminder.snoozeMinutes));
+      final newTime =
+          DateTime.now().add(Duration(minutes: reminder.snoozeMinutes));
       reminder.scheduledAt = newTime;
       await reminder.save();
+      ReminderProvider.instance?.notifyChanges();
       await NotificationService.instance.scheduleNotification(
         id: reminder.id,
         title: reminder.title,
@@ -35,6 +40,8 @@ Future<void> _handleReminderAction(String? actionId, String? payload) async {
         scheduledAt: newTime,
       );
     }
+
+    ReminderProvider.instance?.notifyChanges();
   } catch (e) {
     // Arka plan izolasyonunda sessizce yut, uygulamayı etkilemesin
   }
@@ -105,7 +112,7 @@ class NotificationService {
     final notifId = id.hashCode;
     final scheduledDate = tz.TZDateTime.from(scheduledAt, tz.local);
 
-    final androidDetails = AndroidNotificationDetails(
+    const androidDetails = AndroidNotificationDetails(
       'reminders_channel_v2',
       'Hatırlatıcılar',
       channelDescription: 'Hatırlatıcı bildirimleri',
@@ -113,12 +120,14 @@ class NotificationService {
       priority: Priority.high,
       playSound: true,
       enableVibration: true,
-      actions: const <AndroidNotificationAction>[
-        AndroidNotificationAction('mark_complete', 'Tamamlandı', showsUserInterface: false),
-        AndroidNotificationAction('snooze', 'Ertele', showsUserInterface: false),
+      actions: <AndroidNotificationAction>[
+        AndroidNotificationAction('mark_complete', 'Tamamlandı',
+            showsUserInterface: false),
+        AndroidNotificationAction('snooze', 'Ertele',
+            showsUserInterface: false),
       ],
     );
-    final details = NotificationDetails(android: androidDetails);
+    const details = NotificationDetails(android: androidDetails);
 
     DateTimeComponents? matchComponents;
     if (repeatPeriod == 'Günlük') {

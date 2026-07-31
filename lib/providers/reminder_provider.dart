@@ -5,6 +5,8 @@ import '../models/reminder_model.dart';
 import '../services/notification_service.dart';
 
 class ReminderProvider extends ChangeNotifier {
+  static ReminderProvider? instance;
+
   late Box<Reminder> _box;
   final _uuid = const Uuid();
 
@@ -14,10 +16,21 @@ class ReminderProvider extends ChangeNotifier {
     }
     _box = await Hive.openBox<Reminder>('reminders');
     await _checkYearlyReminders();
+    instance = this;
+    notifyListeners();
+  }
+
+  Future<void> reload() async {
+    await _box.close();
+    _box = await Hive.openBox<Reminder>('reminders');
     notifyListeners();
   }
 
   List<Reminder> get all => _box.values.toList();
+
+  void notifyChanges() {
+    notifyListeners();
+  }
 
   List<Reminder> byProfile(String profileId) => profileId == 'all'
       ? all
@@ -84,7 +97,8 @@ class ReminderProvider extends ChangeNotifier {
   }
 
   Future<void> deleteByTaskId(String taskId) async {
-    final linked = _box.values.where((r) => r.taskId == taskId).map((r) => r.id).toList();
+    final linked =
+        _box.values.where((r) => r.taskId == taskId).map((r) => r.id).toList();
     for (final id in linked) {
       await _box.delete(id);
     }

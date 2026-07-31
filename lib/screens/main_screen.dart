@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../providers/reminder_provider.dart';
 import '../providers/settings_provider.dart';
 import '../theme/app_theme.dart';
 import 'briefing/briefing_screen.dart';
@@ -20,9 +21,28 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => MainScreenState();
 }
 
-class MainScreenState extends State<MainScreen> {
+class MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _currentIndex = 0;
   Offset? _fabDragOffset;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      context.read<ReminderProvider>().reload();
+    }
+  }
 
   /// Profil sekmesine git (briefing header'daki avatar butonu)
   void goToProfile() {
@@ -145,9 +165,11 @@ class MainScreenState extends State<MainScreen> {
       currentTop = _fabDragOffset!.dy.clamp(minY, maxY);
     } else if (settings.fabHPosition == 'center') {
       currentLeft = centerX;
-      currentTop = maxY; // Orijinal tasarımdaki gibi alt barın hemen üzerinde, sabit
+      currentTop =
+          maxY; // Orijinal tasarımdaki gibi alt barın hemen üzerinde, sabit
     } else {
-      currentTop = (settings.fabDyFraction * screenSize.height).clamp(minY, maxY);
+      currentTop =
+          (settings.fabDyFraction * screenSize.height).clamp(minY, maxY);
       currentLeft = settings.fabHPosition == 'left' ? minX : maxX;
     }
 
@@ -179,10 +201,12 @@ class MainScreenState extends State<MainScreen> {
             _fabDragOffset = null;
           });
 
-          if (droppedCenterX >= centerZoneMin && droppedCenterX <= centerZoneMax) {
+          if (droppedCenterX >= centerZoneMin &&
+              droppedCenterX <= centerZoneMax) {
             settings.setFabPosition(settings.fabDyFraction, 'center');
           } else {
-            final hPos = droppedCenterX < screenSize.width / 2 ? 'left' : 'right';
+            final hPos =
+                droppedCenterX < screenSize.width / 2 ? 'left' : 'right';
             settings.setFabPosition(droppedTop / screenSize.height, hPos);
           }
         },
@@ -259,8 +283,10 @@ class MainScreenState extends State<MainScreen> {
                   AppColors.warnText,
                   () {
                     Navigator.pop(context);
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const AddReminderScreen()));
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const AddReminderScreen()));
                   },
                 ),
                 const SizedBox(width: 12),

@@ -47,6 +47,7 @@ void main() async {
     reminderProvider.init(),
     profileProvider.init(),
   ]);
+  debugPrint('TOPLAM PROFIL SAYISI: ${profileProvider.all.length}');
   await settingsProvider.init();
 
   final existingTaskIds = taskProvider.all.map((t) => t.id).toSet();
