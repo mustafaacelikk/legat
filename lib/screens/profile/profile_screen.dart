@@ -9,6 +9,7 @@ import '../../providers/reminder_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../models/profile_model.dart';
 import '../../theme/app_theme.dart';
+import '../../services/cleanup_logic.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -32,19 +33,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildHeader(context),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 children: [
-                  _buildSectionHeader('Profiller'),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _buildSectionHeader('Profiller'),
+                  ),
                   const SizedBox(height: 8),
                   _buildProfileAvatarRow(context, profiles, profileProvider),
                   const SizedBox(height: 24),
-                  _buildSectionHeader('Ayarlar'),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _buildSectionHeader('Ayarlar'),
+                  ),
                   const SizedBox(height: 8),
-                  _buildSettingsCard(context),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _buildSettingsCard(context),
+                  ),
                   const SizedBox(height: 24),
-                  _buildSectionHeader('Hakkında'),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _buildSectionHeader('Hakkında'),
+                  ),
                   const SizedBox(height: 8),
-                  _buildAboutCard(context),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _buildAboutCard(context),
+                  ),
                   const SizedBox(height: 32),
                 ],
               ),
@@ -104,20 +120,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           GestureDetector(
             onTap: () => _showHelp(context),
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Center(
-                child: Text('i',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18)),
-              ),
+            child: const SizedBox(
+              width: 36,
+              height: 36,
+              child: Icon(Icons.info_outline, color: Colors.white, size: 28),
             ),
           ),
         ],
@@ -152,51 +158,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text('Her Şeyim — Nasıl Kullanılır?',
+            const Text('LEGAT — Nasıl Kullanılır?',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
             const SizedBox(height: 20),
             _helpSection('📋 Görevler', [
-              'Görev eklemek için Görevler sekmesindeki + butonuna bas',
-              'Görevi sola kaydır → Sil',
-              'Görevi sağa kaydır → Düzenle',
-              'Göreve tıkla → Detay ve düzenleme',
-              'Tamamlanma yüzdesi düzenleme ekranından ayarlanır',
+              'Alttaki + butonuna dokunarak görev ekle',
+              'Sağa kaydır → Düzenle · Sola kaydır → Sil',
+              'Çift dokun → Düzenleme ekranını aç',
+              'Görev tamamlanınca bağlı hatırlatıcı da otomatik tamamlanır',
             ]),
             _helpSection('📝 Notlar', [
-              'Not eklemek için Notlar sekmesindeki + butonuna bas',
-              'Notu sola kaydır → Sil',
-              'Notu sağa kaydır → Düzenle',
-              '"→ Göreve Dönüştür" butonu notu göreve çevirir',
-              'Göreve dönüşen notlar üstü çizili olarak görünür',
+              'Alttaki + butonuna dokunarak not ekle',
+              '"→ Dönüştür" ile notu Göreve veya Hatırlatıcıya çevir',
+              'Arama ikonuyla başlık ve içerikte ara, sıralama seç',
             ]),
             _helpSection('🔔 Hatırlatıcılar', [
-              'Hatırlatıcılar sekmesinden yönet',
-              'Arama türü seçilirse rehberden kişi bilgisi girilir',
-              'Hatırlatıcıyı sola kaydır → Sil',
-              'Hatırlatıcıyı sağa kaydır → Tamamlandı olarak işaretle',
-              'Erteleme süresi ekleme ekranından ayarlanır',
+              'Arama türünde rehberden kişi seçilir; Ara veya Sohbet ile iletişime geç',
+              'Bildirim üzerindeki Tamamlandı/Ertele butonlarıyla uygulamayı açmadan işlem yap',
+              '"Görev" filtresiyle görevlere bağlı hatırlatıcılar ayrıca görülebilir',
             ]),
             _helpSection('📅 Takvim', [
-              'Google, Outlook ve Apple takvimleri bağlanabilir',
-              'Ay / Hafta / Gün görünümleri arasında geç',
-              'Toplantı detayına tıkla → Not ve aksiyonlar ekle',
+              '2 Haftalık/Aylık görünümler arasında geçiş yap',
+              'Bir güne dokunarak o günün görev ve hatırlatıcılarını gör',
+              'Profil sekmeleriyle takvimi filtrele',
             ]),
-            _helpSection('⚡ Hızlı Ekle', [
-              'Herhangi bir sekme ikonuna uzun bas → Hızlı Ekle menüsü açılır',
-              'Görev, Not veya Hatırlatıcı hızlıca eklenebilir',
+            _helpSection('🗓️ Takvime Ekle', [
+              'Görev, Not veya Hatırlatıcıyı uzun basılı menüden telefonunun kendi takvim uygulamasına (Google/Samsung/Outlook) tek dokunuşla ekleyebilirsin',
             ]),
             _helpSection('👤 Profil Sistemi', [
-              'Kişisel ve İş profilleri ayrı takip edilir',
-              'Üstteki profil barından anlık geçiş yapılır',
-              '"Tümü" seçilince tüm profiller birlikte görünür',
-              'Her görev/not/hatırlatıcı bir profile atanır',
+              'Sınırsız sayıda özel profil oluşturabilirsin',
+              'Profil dairesine dokun → Kartvizit bilgileri; köşedeki kalem ikonuna dokun → Düzenle',
+              'Kartvizit ekranındaki "⋮" menüsünden profili düzenleyebilir veya silebilirsin',
+            ]),
+            _helpSection('⚡ Hızlı Ekle', [
+              'Ekranın altındaki mavi (+) butonuna dokunarak Görev/Not/Hatırlatıcı seçebilirsin',
+              'Bu buton sürüklenebilir; istediğin kenara veya orta konumuna bırakabilirsin',
+            ]),
+            _helpSection('🔕 Bildirimler', [
+              'İlk açılışta bildirim izni istenir, istersen "bir daha gösterme" seçebilirsin',
+              'Profil > Bildirimler\'den bildirim sesini sistem ayarlarından değiştirebilirsin',
             ]),
             _helpSection('☀️ Bugün Ekranı', [
-              'Tüm profillerden özet her zaman burada görünür',
-              'Yaklaşan: 7 gün içindeki işlemler',
-              'Geciken: Tarihi geçmiş tamamlanmamış işlemler',
-              'Arama hatırlatıcıları için "Ara" butonu doğrudan çalışır',
-              'İstatistik kartlarına tıklayarak ilgili sekmeye geç',
+              'Tüm profillerin özeti burada; istatistik kartlarına dokununca ilgili sekmeye geçersin',
+              'Bugüne ait hatırlatıcılar ve yaklaşan görevler burada listelenir',
+            ]),
+            _helpSection('⚙️ Ayarlar', [
+              'Profil sekmesinden tamamlanmış görev ve hatırlatıcıları toplu temizleyebilirsin',
             ]),
             const SizedBox(height: 16),
           ],
@@ -254,48 +261,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildProfileAvatarRow(
       BuildContext context, List<Profile> profiles, ProfileProvider provider) {
-    const itemWidth = 68.0;
-    const itemSpacing = 16.0;
-    const slot = itemWidth + itemSpacing;
-    final totalItems = profiles.length + 1; // +1 "Yeni Ekle"
-    final totalContentWidth = totalItems * slot;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        debugPrint(
-            'AVATAR ROW v2: maxWidth=${constraints.maxWidth}, totalContentWidth=$totalContentWidth, profileCount=${profiles.length}');
-        double? forcedWidth;
-        if (totalContentWidth > constraints.maxWidth) {
-          final fullSlots = (constraints.maxWidth / slot).floor();
-          forcedWidth = fullSlots * slot + (itemWidth / 2);
-          if (forcedWidth > totalContentWidth) {
-            forcedWidth = totalContentWidth;
-          }
-          if (forcedWidth < slot) {
-            forcedWidth = slot; // en az bir tam öğe göster
-          }
-        }
-
-        return Align(
-          alignment: Alignment.centerLeft,
-          child: SizedBox(
-            height: 92,
-            width: forcedWidth,
-            child: ClipRect(
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  ...profiles.map((p) => Padding(
-                        padding: const EdgeInsets.only(right: itemSpacing),
-                        child: _buildProfileAvatar(context, p, provider),
-                      )),
-                  _buildAddProfileAvatar(context),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+    return SizedBox(
+      height: 92,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.only(left: 16),
+        children: [
+          ...profiles.map((p) => Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: _buildProfileAvatar(context, p, provider),
+              )),
+          _buildAddProfileAvatar(context),
+        ],
+      ),
     );
   }
 
@@ -840,17 +818,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () {
               final taskProvider = context.read<TaskProvider>();
               final reminderProvider = context.read<ReminderProvider>();
-              final completed = taskProvider.all
-                  .where((t) => t.status == 'Tamamlandı')
-                  .toList();
-              for (final t in completed) {
-                taskProvider.delete(t.id);
+
+              final result = computeCompletedCleanup(
+                  taskProvider.all, reminderProvider.all);
+
+              for (final id in result.taskIdsToDelete) {
+                taskProvider.delete(id);
               }
-              final completedReminders =
-                  reminderProvider.all.where((r) => r.isCompleted).toList();
-              for (final r in completedReminders) {
-                reminderProvider.delete(r.id);
+              for (final id in result.reminderIdsToDelete) {
+                reminderProvider.delete(id);
               }
+
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Tamamlananlar temizlendi')),

@@ -126,8 +126,7 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
               _buildLabel('Başlık (opsiyonel)'),
               TextField(
                 controller: _titleController,
-                decoration:
-                    const InputDecoration(hintText: 'Not başlığı...'),
+                decoration: const InputDecoration(hintText: 'Not başlığı...'),
                 textCapitalization: TextCapitalization.sentences,
                 autofocus: !isEdit,
               ),
@@ -164,40 +163,42 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
             _buildCard(children: [
               _buildLabel('Profil'),
               const SizedBox(height: 8),
-              Row(
-                children: profiles.map((p) {
-                  final isSelected = _profileId == p.id;
-                  return GestureDetector(
-                    onTap: () => setState(() => _profileId = p.id),
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.brand
-                            : AppColors.surface,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isSelected
-                              ? AppColors.brand
-                              : AppColors.divider,
-                          width: 0.5,
-                        ),
-                      ),
-                      child: Text(p.name,
-                          style: TextStyle(
-                            fontSize: 13,
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: profiles.map((p) {
+                    final isSelected = _profileId == p.id;
+                    return GestureDetector(
+                      onTap: () => setState(() => _profileId = p.id),
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color:
+                              isSelected ? AppColors.brand : AppColors.surface,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
                             color: isSelected
-                                ? Colors.white
-                                : AppColors.textSecondary,
-                            fontWeight: isSelected
-                                ? FontWeight.w500
-                                : FontWeight.w400,
-                          )),
-                    ),
-                  );
-                }).toList(),
+                                ? AppColors.brand
+                                : AppColors.divider,
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Text(p.name,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.textSecondary,
+                              fontWeight: isSelected
+                                  ? FontWeight.w500
+                                  : FontWeight.w400,
+                            )),
+                      ),
+                    );
+                  }).toList(),
+                ),
               ),
             ]),
             const SizedBox(height: 24),
@@ -205,8 +206,7 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _save,
-                child:
-                    Text(isEdit ? 'Değişiklikleri Kaydet' : 'Notu Kaydet'),
+                child: Text(isEdit ? 'Değişiklikleri Kaydet' : 'Notu Kaydet'),
               ),
             ),
             const SizedBox(height: 32),
@@ -221,14 +221,12 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
     return GestureDetector(
       onTap: () => setState(() => _isVoice = isVoiceType),
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.brandLight : AppColors.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color:
-                isSelected ? AppColors.brandMid : AppColors.divider,
+            color: isSelected ? AppColors.brandMid : AppColors.divider,
             width: isSelected ? 1.5 : 0.5,
           ),
         ),
@@ -238,20 +236,15 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
             Icon(
               isVoiceType ? Icons.mic : Icons.notes,
               size: 14,
-              color: isSelected
-                  ? AppColors.brandMid
-                  : AppColors.textSecondary,
+              color: isSelected ? AppColors.brandMid : AppColors.textSecondary,
             ),
             const SizedBox(width: 6),
             Text(label,
                 style: TextStyle(
                   fontSize: 13,
-                  color: isSelected
-                      ? AppColors.brandMid
-                      : AppColors.textSecondary,
-                  fontWeight: isSelected
-                      ? FontWeight.w600
-                      : FontWeight.w400,
+                  color:
+                      isSelected ? AppColors.brandMid : AppColors.textSecondary,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 )),
           ],
         ),

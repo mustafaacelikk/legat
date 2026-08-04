@@ -57,12 +57,22 @@ class ReminderProvider extends ChangeNotifier {
     if (reminder.type.startsWith('Tekrarlayan:')) {
       repeatPeriod = reminder.type.split(':')[1];
     }
+    final hasPhone =
+        reminder.contactPhone != null && reminder.contactPhone!.isNotEmpty;
+    final showCall = hasPhone && reminder.communicationTypes.contains('Ara');
+    final showSend =
+        hasPhone && reminder.communicationTypes.contains('Sohbet');
     await NotificationService.instance.scheduleNotification(
       id: reminder.id,
       title: reminder.title,
-      body: reminder.type,
+      body: (reminder.quickMessage != null &&
+              reminder.quickMessage!.isNotEmpty)
+          ? reminder.quickMessage!
+          : reminder.type,
       scheduledAt: reminder.scheduledAt,
       repeatPeriod: repeatPeriod,
+      showCallAction: showCall,
+      showSendAction: showSend,
     );
   }
 
@@ -101,6 +111,16 @@ class ReminderProvider extends ChangeNotifier {
         _box.values.where((r) => r.taskId == taskId).map((r) => r.id).toList();
     for (final id in linked) {
       await _box.delete(id);
+    }
+    if (linked.isNotEmpty) notifyListeners();
+  }
+
+  Future<void> setCompletedForTask(String taskId, bool completed) async {
+    final linked = _box.values.where((r) => r.taskId == taskId).toList();
+    for (final r in linked) {
+      r.isCompleted = completed;
+      await r.save();
+      await _scheduleFor(r);
     }
     if (linked.isNotEmpty) notifyListeners();
   }

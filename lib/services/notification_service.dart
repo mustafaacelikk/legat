@@ -3,8 +3,10 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:url_launcher/url_launcher.dart';
 import '../models/reminder_model.dart';
 import '../providers/reminder_provider.dart';
+import 'whatsapp_helper.dart';
 
 @pragma('vm:entry-point')
 Future<void> _handleReminderAction(String? actionId, String? payload) async {
@@ -27,6 +29,28 @@ Future<void> _handleReminderAction(String? actionId, String? payload) async {
       await reminder.save();
       ReminderProvider.instance?.notifyChanges();
       await NotificationService.instance.cancelNotification(reminder.id);
+    } else if (actionId == 'call_now') {
+      if (reminder.contactPhone != null && reminder.contactPhone!.isNotEmpty) {
+        final uri = Uri(scheme: 'tel', path: reminder.contactPhone);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      }
+      reminder.isCompleted = true;
+      await reminder.save();
+      await NotificationService.instance.cancelNotification(reminder.id);
+      ReminderProvider.instance?.notifyChanges();
+    } else if (actionId == 'send_message') {
+      if (reminder.contactPhone != null && reminder.contactPhone!.isNotEmpty) {
+        await WhatsappHelper.sendMessage(
+          phone: reminder.contactPhone!,
+          message: reminder.quickMessage ?? '',
+        );
+      }
+      reminder.isCompleted = true;
+      await reminder.save();
+      await NotificationService.instance.cancelNotification(reminder.id);
+      ReminderProvider.instance?.notifyChanges();
     } else if (actionId == 'snooze') {
       final newTime =
           DateTime.now().add(Duration(minutes: reminder.snoozeMinutes));
@@ -106,13 +130,33 @@ class NotificationService {
     required String body,
     required DateTime scheduledAt,
     String? repeatPeriod,
+    bool showCallAction = false,
+    bool showSendAction = false,
   }) async {
     if (scheduledAt.isBefore(DateTime.now())) return;
 
     final notifId = id.hashCode;
     final scheduledDate = tz.TZDateTime.from(scheduledAt, tz.local);
 
-    const androidDetails = AndroidNotificationDetails(
+    final List<AndroidNotificationAction> notifActions = [];
+    if (showCallAction) {
+      notifActions.add(const AndroidNotificationAction('call_now', 'Ara',
+          showsUserInterface: true));
+    }
+    if (showSendAction) {
+      notifActions.add(const AndroidNotificationAction(
+          'send_message', 'Gönder',
+          showsUserInterface: true));
+    }
+    if (!showCallAction && !showSendAction) {
+      notifActions.add(const AndroidNotificationAction(
+          'mark_complete', 'Tamamlandı',
+          showsUserInterface: false));
+    }
+    notifActions.add(const AndroidNotificationAction('snooze', 'Ertele',
+        showsUserInterface: false));
+
+    final androidDetails = AndroidNotificationDetails(
       'reminders_channel_v2',
       'Hatırlatıcılar',
       channelDescription: 'Hatırlatıcı bildirimleri',
@@ -120,14 +164,10 @@ class NotificationService {
       priority: Priority.high,
       playSound: true,
       enableVibration: true,
-      actions: <AndroidNotificationAction>[
-        AndroidNotificationAction('mark_complete', 'Tamamlandı',
-            showsUserInterface: false),
-        AndroidNotificationAction('snooze', 'Ertele',
-            showsUserInterface: false),
-      ],
+      styleInformation: BigTextStyleInformation(body),
+      actions: notifActions,
     );
-    const details = NotificationDetails(android: androidDetails);
+    final details = NotificationDetails(android: androidDetails);
 
     DateTimeComponents? matchComponents;
     if (repeatPeriod == 'Günlük') {

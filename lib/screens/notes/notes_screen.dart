@@ -7,6 +7,7 @@ import '../../providers/note_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../models/note_model.dart';
+import '../../services/calendar_intent_service.dart';
 import 'add_note_screen.dart';
 import 'convert_to_task_screen.dart';
 import 'convert_to_reminder_screen.dart';
@@ -42,13 +43,16 @@ class _NotesScreenState extends State<NotesScreen> {
 
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
-      notes = notes.where((n) =>
-          n.title.toLowerCase().contains(q) ||
-          n.content.toLowerCase().contains(q)).toList();
+      notes = notes
+          .where((n) =>
+              n.title.toLowerCase().contains(q) ||
+              n.content.toLowerCase().contains(q))
+          .toList();
     }
 
     if (_sortType == 'Alfabetik') {
-      notes.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+      notes.sort(
+          (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
     } else {
       notes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     }
@@ -66,19 +70,24 @@ class _NotesScreenState extends State<NotesScreen> {
               Container(
                 width: double.infinity,
                 color: AppColors.brandLight,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   children: [
                     const Icon(Icons.search, size: 14, color: AppColors.brand),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text('"$_searchQuery" için sonuçlar',
-                          style: const TextStyle(fontSize: 12, color: AppColors.brand, fontWeight: FontWeight.w500),
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.brand,
+                              fontWeight: FontWeight.w500),
                           overflow: TextOverflow.ellipsis),
                     ),
                     GestureDetector(
                       onTap: () => setState(() => _searchQuery = ''),
-                      child: const Icon(Icons.close, size: 16, color: AppColors.brand),
+                      child: const Icon(Icons.close,
+                          size: 16, color: AppColors.brand),
                     ),
                   ],
                 ),
@@ -126,26 +135,18 @@ class _NotesScreenState extends State<NotesScreen> {
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.manage_search, color: Colors.white, size: 20),
+                  child: const Icon(Icons.manage_search,
+                      color: Colors.white, size: 20),
                 ),
               ),
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: () => _showHelp(context),
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Center(
-                    child: Text('i',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16)),
-                  ),
+                child: const SizedBox(
+                  width: 36,
+                  height: 36,
+                  child:
+                      Icon(Icons.info_outline, color: Colors.white, size: 28),
                 ),
               ),
             ],
@@ -276,113 +277,117 @@ class _NotesScreenState extends State<NotesScreen> {
         onLongPress: () => _showNoteMenu(context, note),
         onDoubleTap: () => _editNote(note),
         child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(
-          color: note.convertedToTask
-              ? const Color(0xFFE0F2F1)
-              : const Color(0xFFF3E8FF),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
+          margin: const EdgeInsets.only(bottom: 10),
+          decoration: BoxDecoration(
             color: note.convertedToTask
-                ? const Color(0xFF00695C).withValues(alpha: 0.3)
-                : const Color(0xFF6B21A8).withValues(alpha: 0.2),
-          ),
-          boxShadow: const [
-            BoxShadow(
-                color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 1)),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      note.title,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: note.convertedToTask
-                            ? AppColors.textSecondary
-                            : AppColors.textPrimary,
-                        decoration: note.convertedToTask
-                            ? TextDecoration.lineThrough
-                            : null,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: note.isVoice ? AppColors.brand : AppColors.surface,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color:
-                            note.isVoice ? AppColors.brand : AppColors.divider,
-                        width: 0.5,
-                      ),
-                    ),
-                    child: Text(
-                      note.isVoice ? 'Sesli' : 'Metin',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: note.isVoice
-                            ? Colors.white
-                            : AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (note.content.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  note.content,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 12, color: AppColors.textSecondary),
-                ),
-              ],
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Text(
-                    DateFormat('d MMM y, HH:mm', 'tr_TR')
-                        .format(note.createdAt),
-                    style: const TextStyle(
-                        fontSize: 10, color: AppColors.textSecondary),
-                  ),
-                  const Spacer(),
-                  if (!note.convertedToTask)
-                    GestureDetector(
-                      onTap: () => _showConvertMenu(context, note),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.brandLight,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                              color: AppColors.brandBorder, width: 0.5),
-                        ),
-                        child: const Text('→ Dönüştür',
-                            style: TextStyle(
-                                fontSize: 10,
-                                color: AppColors.brand,
-                                fontWeight: FontWeight.w500)),
-                      ),
-                    ),
-                ],
-              ),
+                ? const Color(0xFFE0F2F1)
+                : const Color(0xFFF3E8FF),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: note.convertedToTask
+                  ? const Color(0xFF00695C).withValues(alpha: 0.3)
+                  : const Color(0xFF6B21A8).withValues(alpha: 0.2),
+            ),
+            boxShadow: const [
+              BoxShadow(
+                  color: Color(0x0A000000),
+                  blurRadius: 4,
+                  offset: Offset(0, 1)),
             ],
           ),
-        ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        note.title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: note.convertedToTask
+                              ? AppColors.textSecondary
+                              : AppColors.textPrimary,
+                          decoration: note.convertedToTask
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color:
+                            note.isVoice ? AppColors.brand : AppColors.surface,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: note.isVoice
+                              ? AppColors.brand
+                              : AppColors.divider,
+                          width: 0.5,
+                        ),
+                      ),
+                      child: Text(
+                        note.isVoice ? 'Sesli' : 'Metin',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: note.isVoice
+                              ? Colors.white
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (note.content.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    note.content,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Text(
+                      DateFormat('d MMM y, HH:mm', 'tr_TR')
+                          .format(note.createdAt),
+                      style: const TextStyle(
+                          fontSize: 10, color: AppColors.textSecondary),
+                    ),
+                    const Spacer(),
+                    if (!note.convertedToTask)
+                      GestureDetector(
+                        onTap: () => _showConvertMenu(context, note),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.brandLight,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                                color: AppColors.brandBorder, width: 0.5),
+                          ),
+                          child: const Text('→ Dönüştür',
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.brand,
+                                  fontWeight: FontWeight.w500)),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -400,7 +405,8 @@ class _NotesScreenState extends State<NotesScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 40, height: 4,
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
                 color: AppColors.grayBorder,
                 borderRadius: BorderRadius.circular(2),
@@ -408,22 +414,38 @@ class _NotesScreenState extends State<NotesScreen> {
             ),
             const SizedBox(height: 12),
             Text(note.title,
-                style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w600),
-                maxLines: 1, overflow: TextOverflow.ellipsis),
+                style:
+                    const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
             const Divider(color: AppColors.divider),
             ListTile(
               leading: const Icon(Icons.edit_outlined, color: AppColors.brand),
               title: const Text('Düzenle'),
               onTap: () {
                 Navigator.pop(ctx);
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => AddNoteScreen(note: note)));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => AddNoteScreen(note: note)));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.event_outlined, color: AppColors.brand),
+              title: const Text('Takvime Ekle'),
+              onTap: () {
+                Navigator.pop(ctx);
+                CalendarIntentService.addEvent(
+                  title: note.title,
+                  description: note.content,
+                  start: DateTime.now(),
+                );
               },
             ),
             if (!note.convertedToTask) ...[
               ListTile(
-                leading: const Icon(Icons.swap_horiz, color: AppColors.brandMid),
+                leading:
+                    const Icon(Icons.swap_horiz, color: AppColors.brandMid),
                 title: const Text('Dönüştür'),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -432,8 +454,10 @@ class _NotesScreenState extends State<NotesScreen> {
               ),
             ],
             ListTile(
-              leading: const Icon(Icons.delete_outline, color: AppColors.dangerText),
-              title: const Text('Sil', style: TextStyle(color: AppColors.dangerText)),
+              leading:
+                  const Icon(Icons.delete_outline, color: AppColors.dangerText),
+              title: const Text('Sil',
+                  style: TextStyle(color: AppColors.dangerText)),
               onTap: () {
                 Navigator.pop(ctx);
                 _confirmDelete(note);
@@ -499,7 +523,8 @@ class _NotesScreenState extends State<NotesScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 40, height: 4,
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
                 color: AppColors.grayBorder,
                 borderRadius: BorderRadius.circular(2),
@@ -511,7 +536,8 @@ class _NotesScreenState extends State<NotesScreen> {
             const SizedBox(height: 16),
             ListTile(
               leading: Container(
-                width: 40, height: 40,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: AppColors.successBg,
                   borderRadius: BorderRadius.circular(10),
@@ -522,7 +548,8 @@ class _NotesScreenState extends State<NotesScreen> {
               title: const Text('Göreve Dönüştür',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               subtitle: const Text('Görevler listesine ekle',
-                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                  style:
+                      TextStyle(fontSize: 11, color: AppColors.textSecondary)),
               onTap: () {
                 Navigator.pop(ctx);
                 _convertToTask(note);
@@ -531,7 +558,8 @@ class _NotesScreenState extends State<NotesScreen> {
             const Divider(height: 1, color: AppColors.divider),
             ListTile(
               leading: Container(
-                width: 40, height: 40,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: AppColors.warnBg,
                   borderRadius: BorderRadius.circular(10),
@@ -542,7 +570,8 @@ class _NotesScreenState extends State<NotesScreen> {
               title: const Text('Hatırlatıcıya Dönüştür',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               subtitle: const Text('Hatırlatıcılar listesine ekle',
-                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                  style:
+                      TextStyle(fontSize: 11, color: AppColors.textSecondary)),
               onTap: () {
                 Navigator.pop(ctx);
                 Navigator.push(
@@ -567,13 +596,16 @@ class _NotesScreenState extends State<NotesScreen> {
           padding: const EdgeInsets.only(top: 60),
           child: Column(
             children: [
-              const Icon(Icons.search_off, size: 64, color: AppColors.grayBorder),
+              const Icon(Icons.search_off,
+                  size: 64, color: AppColors.grayBorder),
               const SizedBox(height: 16),
               Text('"$_searchQuery" için sonuç bulunamadı',
-                  style: const TextStyle(fontSize: 16, color: AppColors.textSecondary)),
+                  style: const TextStyle(
+                      fontSize: 16, color: AppColors.textSecondary)),
               const SizedBox(height: 8),
               const Text('Farklı bir kelime ile aramayı dene',
-                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                  style:
+                      TextStyle(fontSize: 13, color: AppColors.textSecondary)),
             ],
           ),
         ),
@@ -709,7 +741,7 @@ class _NotesScreenState extends State<NotesScreen> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: 12),
             const Text(
-                '• Sağa kaydır: düzenle · Sola kaydır: sil\n• Basılı tut: hızlı menü (düzenle/dönüştür/sil)\n• Çift dokun: düzenleme ekranını aç\n• "→ Dönüştür": notu göreve veya hatırlatıcıya çevir\n• Arama ikonu: başlık ve içerikte ara, sıralama seç\n• Alttaki + butonu: hızlı görev/not/hatırlatıcı ekle',
+                '• Sağa kaydır: düzenle · Sola kaydır: sil\n• Basılı tut: hızlı menü (düzenle/dönüştür/sil/Takvime Ekle)\n• Çift dokun: düzenleme ekranını aç\n• "→ Dönüştür": notu göreve veya hatırlatıcıya çevir\n• Arama ikonu: başlık ve içerikte ara, sıralama seç\n• Alttaki + butonu: hızlı görev/not/hatırlatıcı ekle',
                 style: TextStyle(
                     fontSize: 13, color: AppColors.textSecondary, height: 1.6)),
             const SizedBox(height: 8),

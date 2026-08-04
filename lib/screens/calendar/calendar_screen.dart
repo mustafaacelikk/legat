@@ -96,7 +96,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: 12),
             const Text(
-                '• Bir güne dokunarak o günün detaylarını gör\n• Ay/Hafta/2 Hafta görünümleri arasında geçiş yapabilirsin\n• Etkinlik işaretçileri o günde görev veya hatırlatıcı olduğunu gösterir\n• Yeni görev/hatırlatıcı eklemek için alttaki + (hızlı ekle) butonunu kullan\n• Profil sekmeleri ile takvimi belirli bir profile göre filtreleyebilirsin',
+                '• Bir güne dokunarak o günün detaylarını gör\n• Ay/Hafta/2 Hafta görünümleri arasında geçiş yapabilirsin\n• Etkinlik işaretçileri o günde görev veya hatırlatıcı olduğunu gösterir\n• İletişim türü hatırlatıcılarda Ara/Sohbet butonları doğrudan çalışır\n• Yeni görev/hatırlatıcı eklemek için alttaki + (hızlı ekle) butonunu kullan\n• Profil sekmeleri ile takvimi belirli bir profile göre filtreleyebilirsin',
                 style: TextStyle(
                     fontSize: 13, color: AppColors.textSecondary, height: 1.6)),
             const SizedBox(height: 8),
@@ -170,20 +170,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
               const Spacer(),
               GestureDetector(
                 onTap: () => _showHelp(context),
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Center(
-                    child: Text('i',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16)),
-                  ),
+                child: const SizedBox(
+                  width: 36,
+                  height: 36,
+                  child:
+                      Icon(Icons.info_outline, color: Colors.white, size: 28),
                 ),
               ),
             ],
@@ -645,24 +636,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           }
                         },
                       ),
-                    if (reminder.type == 'SMS' ||
-                        reminder.communicationTypes.contains('SMS')) ...[
-                      const SizedBox(width: 8),
-                      _calendarActionButton(
-                        icon: Icons.sms,
-                        label: 'SMS',
-                        onTap: () async {
-                          final uri =
-                              Uri(scheme: 'sms', path: reminder.contactPhone);
-                          if (await canLaunchUrl(uri)) {
-                            await launchUrl(uri,
-                                mode: LaunchMode.externalApplication);
-                          }
-                        },
-                      ),
-                    ],
                     if (reminder.type == 'Sohbet' ||
-                        reminder.communicationTypes.contains('WhatsApp')) ...[
+                        reminder.communicationTypes.contains('Sohbet')) ...[
                       const SizedBox(width: 8),
                       _calendarActionButton(
                         icon: Icons.chat,
@@ -674,7 +649,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             action: 'android.intent.action.SEND',
                             type: 'text/plain',
                             arguments: <String, dynamic>{
-                              'android.intent.extra.TEXT': 'Merhaba',
+                              'android.intent.extra.TEXT': '',
                               'address': phone,
                             },
                           );

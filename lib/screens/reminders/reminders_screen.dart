@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:android_intent_plus/android_intent.dart';
 import '../../providers/reminder_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../models/reminder_model.dart';
+import '../../services/calendar_intent_service.dart';
+import '../../services/whatsapp_helper.dart';
 import 'add_reminder_screen.dart';
 
 class RemindersScreen extends StatefulWidget {
@@ -18,7 +19,15 @@ class RemindersScreen extends StatefulWidget {
 
 class _RemindersScreenState extends State<RemindersScreen> {
   String _filter = 'Tümü';
-  final _filters = ['Tümü', 'İletişim', 'Özel Gün', 'Görev', 'Bekleyen', 'Geciken', 'Tamamlandı'];
+  final _filters = [
+    'Tümü',
+    'İletişim',
+    'Özel Gün',
+    'Görev',
+    'Bekleyen',
+    'Geciken',
+    'Tamamlandı'
+  ];
   String _searchQuery = '';
   String _sortType = 'Öncelik'; // 'Tarih' | 'Öncelik' | 'Alfabetik'
 
@@ -46,7 +55,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
       reminders = reminders.where((r) => !r.isCompleted).toList();
     } else if (_filter == 'Geciken') {
       reminders = reminders
-          .where((r) => !r.isCompleted && r.scheduledAt.isBefore(DateTime.now()))
+          .where(
+              (r) => !r.isCompleted && r.scheduledAt.isBefore(DateTime.now()))
           .toList();
     } else if (_filter == 'Tamamlandı') {
       reminders = reminders.where((r) => r.isCompleted).toList();
@@ -54,13 +64,16 @@ class _RemindersScreenState extends State<RemindersScreen> {
 
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
-      reminders = reminders.where((r) =>
-          r.title.toLowerCase().contains(q) ||
-          (r.contactName?.toLowerCase().contains(q) ?? false)).toList();
+      reminders = reminders
+          .where((r) =>
+              r.title.toLowerCase().contains(q) ||
+              (r.contactName?.toLowerCase().contains(q) ?? false))
+          .toList();
     }
 
     if (_sortType == 'Alfabetik') {
-      reminders.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+      reminders.sort(
+          (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
     } else if (_sortType == 'Tarih') {
       reminders.sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
     } else {
@@ -77,6 +90,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
           if (isOverdue) return 1;
           return 2;
         }
+
         final pa = priority(a);
         final pb = priority(b);
         if (pa != pb) return pa.compareTo(pb);
@@ -97,19 +111,24 @@ class _RemindersScreenState extends State<RemindersScreen> {
               Container(
                 width: double.infinity,
                 color: AppColors.brandLight,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   children: [
                     const Icon(Icons.search, size: 14, color: AppColors.brand),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text('"$_searchQuery" için sonuçlar',
-                          style: const TextStyle(fontSize: 12, color: AppColors.brand, fontWeight: FontWeight.w500),
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.brand,
+                              fontWeight: FontWeight.w500),
                           overflow: TextOverflow.ellipsis),
                     ),
                     GestureDetector(
                       onTap: () => setState(() => _searchQuery = ''),
-                      child: const Icon(Icons.close, size: 16, color: AppColors.brand),
+                      child: const Icon(Icons.close,
+                          size: 16, color: AppColors.brand),
                     ),
                   ],
                 ),
@@ -157,26 +176,18 @@ class _RemindersScreenState extends State<RemindersScreen> {
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.manage_search, color: Colors.white, size: 20),
+                  child: const Icon(Icons.manage_search,
+                      color: Colors.white, size: 20),
                 ),
               ),
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: () => _showHelp(context),
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Center(
-                    child: Text('i',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16)),
-                  ),
+                child: const SizedBox(
+                  width: 36,
+                  height: 36,
+                  child:
+                      Icon(Icons.info_outline, color: Colors.white, size: 28),
                 ),
               ),
             ],
@@ -363,186 +374,184 @@ class _RemindersScreenState extends State<RemindersScreen> {
         child: Material(
           color: Colors.transparent,
           child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: borderColor, width: 0.5),
-        ),
-        child: Column(
-          children: [
-            Row(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: borderColor, width: 0.5),
+            ),
+            child: Column(
               children: [
-            Icon(
-              reminder.isCompleted
-                  ? Icons.check_circle
-                  : reminder.type == 'Arama'
-                      ? Icons.phone_outlined
-                      : reminder.type == 'Sohbet'
-                          ? Icons.forum_outlined
-                          : reminder.type == 'Özel Gün' &&
-                                  reminder.specialDayType == 'Doğum Günü'
-                              ? Icons.cake_outlined
-                              : reminder.type == 'Özel Gün' &&
-                                      reminder.specialDayType == 'Yıldönümü'
-                                  ? Icons.favorite_outline
-                                  : Icons.notifications_outlined,
-              color: reminder.isCompleted
-                  ? AppColors.successText
-                  : AppColors.warnText,
-              size: 20,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    reminder.title,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
+                Row(
+                  children: [
+                    Icon(
+                      reminder.isCompleted
+                          ? Icons.check_circle
+                          : reminder.type == 'Arama'
+                              ? Icons.phone_outlined
+                              : reminder.type == 'Sohbet'
+                                  ? Icons.forum_outlined
+                                  : reminder.type == 'Özel Gün' &&
+                                          reminder.specialDayType ==
+                                              'Doğum Günü'
+                                      ? Icons.cake_outlined
+                                      : reminder.type == 'Özel Gün' &&
+                                              reminder.specialDayType ==
+                                                  'Yıldönümü'
+                                          ? Icons.favorite_outline
+                                          : Icons.notifications_outlined,
                       color: reminder.isCompleted
-                          ? AppColors.textSecondary
-                          : AppColors.textPrimary,
-                      decoration: reminder.isCompleted
-                          ? TextDecoration.lineThrough
-                          : null,
+                          ? AppColors.successText
+                          : AppColors.warnText,
+                      size: 20,
                     ),
-                  ),
-                  if (isCall && reminder.contactPhone != null)
-                    Text(reminder.contactPhone!,
-                        style: const TextStyle(
-                            fontSize: 11, color: AppColors.textSecondary)),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.access_time,
-                          size: 11, color: AppColors.textSecondary),
-                      const SizedBox(width: 4),
-                      Text(
-                        DateFormat('d MMM y, HH:mm', 'tr_TR')
-                            .format(reminder.scheduledAt),
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: isOverdue && !reminder.isCompleted
-                              ? AppColors.dangerText
-                              : AppColors.textSecondary,
-                          fontWeight: isOverdue && !reminder.isCompleted
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                        ),
-                      ),
-                      if (isOverdue && !reminder.isCompleted) ...[
-                        const SizedBox(width: 4),
-                        const Text('· Gecikti',
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            reminder.title,
                             style: TextStyle(
-                                fontSize: 10,
-                                color: AppColors.dangerText,
-                                fontWeight: FontWeight.w600)),
-                      ],
-                    ],
-                  ),
-                  Builder(
-                    builder: (context) {
-                      final now = DateTime.now();
-                      String countdownText;
-                      Color countdownColor;
-
-                      final diffInHours =
-                          reminder.scheduledAt.difference(now).inHours;
-                      final diffInDays =
-                          reminder.scheduledAt.difference(now).inDays;
-
-                      if (diffInHours >= 0 && diffInDays == 0) {
-                        countdownText = 'Bugün!';
-                        countdownColor = const Color(0xFFE65100);
-                      } else if (diffInHours < 0 && diffInHours >= -24) {
-                        countdownText = 'Dün';
-                        countdownColor = const Color(0xFFB71C1C);
-                      } else if (diffInDays < 0) {
-                        countdownText = '${diffInDays.abs()} gün geçti';
-                        countdownColor = const Color(0xFFB71C1C);
-                      } else if (diffInDays == 1) {
-                        countdownText = 'Yarın';
-                        countdownColor = const Color(0xFFE65100);
-                      } else {
-                        countdownText = '$diffInDays gün sonra';
-                        countdownColor = AppColors.textSecondary;
-                      }
-
-                      return Container(
-                        margin: const EdgeInsets.only(top: 8),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: countdownColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                              color: countdownColor.withValues(alpha: 0.3)),
-                        ),
-                        child: Text(
-                          '⏱ $countdownText',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: countdownColor,
-                            fontWeight: FontWeight.w500,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: reminder.isCompleted
+                                  ? AppColors.textSecondary
+                                  : AppColors.textPrimary,
+                              decoration: reminder.isCompleted
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            if (!reminder.isCompleted &&
-                reminder.contactPhone != null &&
-                reminder.contactPhone!.isNotEmpty)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (reminder.communicationTypes.contains('Ara') ||
-                      reminder.type == 'Arama')
-                    _iconActionButton(
-                      icon: Icons.phone,
-                      onTap: () async {
-                        final uri =
-                            Uri(scheme: 'tel', path: reminder.contactPhone);
-                        if (await canLaunchUrl(uri)) {
-                          await launchUrl(uri,
-                              mode: LaunchMode.externalApplication);
-                        }
-                      },
+                          if (isCall && reminder.contactPhone != null)
+                            Text(reminder.contactPhone!,
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary)),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(Icons.access_time,
+                                  size: 11, color: AppColors.textSecondary),
+                              const SizedBox(width: 4),
+                              Text(
+                                DateFormat('d MMM y, HH:mm', 'tr_TR')
+                                    .format(reminder.scheduledAt),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: isOverdue && !reminder.isCompleted
+                                      ? AppColors.dangerText
+                                      : AppColors.textSecondary,
+                                  fontWeight: isOverdue && !reminder.isCompleted
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                              if (isOverdue && !reminder.isCompleted) ...[
+                                const SizedBox(width: 4),
+                                const Text('· Gecikti',
+                                    style: TextStyle(
+                                        fontSize: 10,
+                                        color: AppColors.dangerText,
+                                        fontWeight: FontWeight.w600)),
+                              ],
+                            ],
+                          ),
+                          Builder(
+                            builder: (context) {
+                              final now = DateTime.now();
+                              String countdownText;
+                              Color countdownColor;
+
+                              final diffInHours =
+                                  reminder.scheduledAt.difference(now).inHours;
+                              final diffInDays =
+                                  reminder.scheduledAt.difference(now).inDays;
+
+                              if (diffInHours >= 0 && diffInDays == 0) {
+                                countdownText = 'Bugün!';
+                                countdownColor = const Color(0xFFE65100);
+                              } else if (diffInHours < 0 &&
+                                  diffInHours >= -24) {
+                                countdownText = 'Dün';
+                                countdownColor = const Color(0xFFB71C1C);
+                              } else if (diffInDays < 0) {
+                                countdownText = '${diffInDays.abs()} gün geçti';
+                                countdownColor = const Color(0xFFB71C1C);
+                              } else if (diffInDays == 1) {
+                                countdownText = 'Yarın';
+                                countdownColor = const Color(0xFFE65100);
+                              } else {
+                                countdownText = '$diffInDays gün sonra';
+                                countdownColor = AppColors.textSecondary;
+                              }
+
+                              return Container(
+                                margin: const EdgeInsets.only(top: 8),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: countdownColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                      color: countdownColor.withValues(
+                                          alpha: 0.3)),
+                                ),
+                                child: Text(
+                                  '⏱ $countdownText',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: countdownColor,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                  if (reminder.communicationTypes.contains('Sohbet') ||
-                      reminder.type == 'Sohbet') ...[
-                    const SizedBox(width: 6),
-                    _iconActionButton(
-                      icon: Icons.forum_outlined,
-                      onTap: () async {
-                        final phone = reminder.contactPhone!
-                            .replaceAll(RegExp(r'[^0-9+]'), '');
-                        final intent = AndroidIntent(
-                          action: 'android.intent.action.SEND',
-                          type: 'text/plain',
-                          arguments: <String, dynamic>{
-                            'android.intent.extra.TEXT': '',
-                            'address': phone,
-                          },
-                        );
-                        await intent.launch();
-                      },
-                    ),
+                    if (!reminder.isCompleted &&
+                        reminder.contactPhone != null &&
+                        reminder.contactPhone!.isNotEmpty)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (reminder.communicationTypes.contains('Ara') ||
+                              reminder.type == 'Arama')
+                            _iconActionButton(
+                              icon: Icons.phone,
+                              onTap: () async {
+                                final uri = Uri(
+                                    scheme: 'tel', path: reminder.contactPhone);
+                                if (await canLaunchUrl(uri)) {
+                                  await launchUrl(uri,
+                                      mode: LaunchMode.externalApplication);
+                                }
+                              },
+                            ),
+                          if (reminder.communicationTypes.contains('Sohbet') ||
+                              reminder.type == 'Sohbet') ...[
+                            const SizedBox(width: 6),
+                            _iconActionButton(
+                              icon: Icons.forum_outlined,
+                              onTap: () async {
+                                await WhatsappHelper.sendMessage(
+                                  phone: reminder.contactPhone!,
+                                  message: reminder.quickMessage ?? '',
+                                );
+                              },
+                            ),
+                          ],
+                        ],
+                      ),
                   ],
-                ],
-              ),
+                ),
               ],
             ),
-          ],
+          ),
         ),
-      ),
-      ),
       ),
     );
   }
@@ -577,7 +586,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 40, height: 4,
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
                 color: AppColors.grayBorder,
                 borderRadius: BorderRadius.circular(2),
@@ -585,18 +595,32 @@ class _RemindersScreenState extends State<RemindersScreen> {
             ),
             const SizedBox(height: 12),
             Text(reminder.title,
-                style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w600),
-                maxLines: 1, overflow: TextOverflow.ellipsis),
+                style:
+                    const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
             const Divider(color: AppColors.divider),
             ListTile(
               leading: const Icon(Icons.edit_outlined, color: AppColors.brand),
               title: const Text('Düzenle'),
               onTap: () {
                 Navigator.pop(ctx);
-                Navigator.push(context,
+                Navigator.push(
+                    context,
                     MaterialPageRoute(
                         builder: (_) => AddReminderScreen(reminder: reminder)));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.event_outlined, color: AppColors.brand),
+              title: const Text('Takvime Ekle'),
+              onTap: () {
+                Navigator.pop(ctx);
+                CalendarIntentService.addEvent(
+                  title: reminder.title,
+                  description: reminder.type,
+                  start: reminder.scheduledAt,
+                );
               },
             ),
             ListTile(
@@ -619,15 +643,18 @@ class _RemindersScreenState extends State<RemindersScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete_outline, color: AppColors.dangerText),
-              title: const Text('Sil', style: TextStyle(color: AppColors.dangerText)),
+              leading:
+                  const Icon(Icons.delete_outline, color: AppColors.dangerText),
+              title: const Text('Sil',
+                  style: TextStyle(color: AppColors.dangerText)),
               onTap: () async {
                 Navigator.pop(ctx);
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (_) => AlertDialog(
                     title: const Text('Hatırlatıcıyı Sil'),
-                    content: const Text('Bu hatırlatıcıyı silmek istediğinize emin misiniz?'),
+                    content: const Text(
+                        'Bu hatırlatıcıyı silmek istediğinize emin misiniz?'),
                     actions: [
                       TextButton(
                           onPressed: () => Navigator.pop(context, false),
@@ -657,13 +684,16 @@ class _RemindersScreenState extends State<RemindersScreen> {
           padding: const EdgeInsets.only(top: 60),
           child: Column(
             children: [
-              const Icon(Icons.search_off, size: 64, color: AppColors.grayBorder),
+              const Icon(Icons.search_off,
+                  size: 64, color: AppColors.grayBorder),
               const SizedBox(height: 16),
               Text('"$_searchQuery" için sonuç bulunamadı',
-                  style: const TextStyle(fontSize: 16, color: AppColors.textSecondary)),
+                  style: const TextStyle(
+                      fontSize: 16, color: AppColors.textSecondary)),
               const SizedBox(height: 8),
               const Text('Farklı bir kelime ile aramayı dene',
-                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                  style:
+                      TextStyle(fontSize: 13, color: AppColors.textSecondary)),
             ],
           ),
         ),
@@ -793,7 +823,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: 12),
             const Text(
-                '• Sağa kaydır: düzenle · Sola kaydır: sil\n• Basılı tut: hızlı menü (düzenle/tamamla/sil)\n• Çift dokun: düzenleme ekranını aç\n• Arama ikonu: başlıkta ve kişi adında ara, sıralama seç\n• Alttaki + butonu: hızlı görev/not/hatırlatıcı ekle',
+                '• Sağa kaydır: düzenle · Sola kaydır: sil\n• Basılı tut: hızlı menü (düzenle/tamamla/sil/Takvime Ekle)\n• Çift dokun: düzenleme ekranını aç\n• Arama ikonu: başlıkta ve kişi adında ara, sıralama seç\n• Bildirim üzerinden Tamamlandı/Ertele yapılabilir\n• Alttaki + butonu: hızlı görev/not/hatırlatıcı ekle',
                 style: TextStyle(
                     fontSize: 13, color: AppColors.textSecondary, height: 1.6)),
             const SizedBox(height: 8),

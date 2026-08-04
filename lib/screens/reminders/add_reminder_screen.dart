@@ -22,13 +22,13 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   late TextEditingController _titleController;
   final _phoneController = TextEditingController();
   final _contactController = TextEditingController();
+  final _quickMessageController = TextEditingController();
   String _type = 'Zamanlı';
   String _profileId = 'personal';
   DateTime _scheduledAt = DateTime.now();
   int _snoozeMinutes = 30;
 
-  bool get _isContactType =>
-      _type == 'Mobil İletişim' || _type == 'Özel Gün';
+  bool get _isContactType => _type == 'Mobil İletişim' || _type == 'Özel Gün';
 
   String _autoTitle() {
     final name = _contactController.text.trim();
@@ -83,6 +83,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       }
       if (r.contactName != null) _contactController.text = r.contactName!;
       if (r.contactPhone != null) _phoneController.text = r.contactPhone!;
+      if (r.quickMessage != null) _quickMessageController.text = r.quickMessage!;
       if (r.specialDayType != null) _specialDayType = r.specialDayType!;
       _isRecurringYearly = r.isRecurringYearly;
 
@@ -140,6 +141,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     _titleController.dispose();
     _phoneController.dispose();
     _contactController.dispose();
+    _quickMessageController.dispose();
     super.dispose();
   }
 
@@ -177,8 +179,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
     setState(() {
       _scheduledAt = DateTime(
-        pickedDate.year, pickedDate.month, pickedDate.day,
-        pickedTime.hour, pickedTime.minute,
+        pickedDate.year,
+        pickedDate.month,
+        pickedDate.day,
+        pickedTime.hour,
+        pickedTime.minute,
       );
     });
     FocusManager.instance.primaryFocus?.unfocus();
@@ -272,8 +277,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         : _titleController.text.trim().isNotEmpty
             ? _titleController.text.trim()
             : _titleController.text.trim();
-    final typeToSave =
-        _type == 'Tekrarlayan' ? '$_type:$_repeatPeriod' : _type;
+    final typeToSave = _type == 'Tekrarlayan' ? '$_type:$_repeatPeriod' : _type;
     final isYearly = _type == 'Tekrarlayan' && _repeatPeriod == 'Yıllık';
 
     if (widget.reminder != null) {
@@ -294,6 +298,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       r.communicationTypes = _type == 'Mobil İletişim' || _type == 'Özel Gün'
           ? _selectedCommunicationTypes.toList()
           : [];
+      r.quickMessage = _selectedCommunicationTypes.contains('Sohbet')
+          ? _quickMessageController.text.trim()
+          : null;
       provider.update(r);
     } else {
       provider.add(Reminder(
@@ -310,6 +317,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         communicationTypes: _type == 'Mobil İletişim' || _type == 'Özel Gün'
             ? _selectedCommunicationTypes.toList()
             : [],
+        quickMessage: _selectedCommunicationTypes.contains('Sohbet')
+            ? _quickMessageController.text.trim()
+            : null,
       ));
     }
 
@@ -337,18 +347,18 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       String offsetLabel;
       switch (offset) {
         case 'Bir Gün Önce':
-          reminderDate = DateTime(
-              baseDate.year, baseDate.month, baseDate.day - 1, 9, 0);
+          reminderDate =
+              DateTime(baseDate.year, baseDate.month, baseDate.day - 1, 9, 0);
           offsetLabel = '1 Gün Sonra';
           break;
         case 'Bir Hafta Önce':
-          reminderDate = DateTime(
-              baseDate.year, baseDate.month, baseDate.day - 7, 9, 0);
+          reminderDate =
+              DateTime(baseDate.year, baseDate.month, baseDate.day - 7, 9, 0);
           offsetLabel = '1 Hafta Sonra';
           break;
         default:
-          reminderDate = DateTime(
-              baseDate.year, baseDate.month, baseDate.day, 9, 0);
+          reminderDate =
+              DateTime(baseDate.year, baseDate.month, baseDate.day, 9, 0);
           offsetLabel = '';
       }
 
@@ -366,6 +376,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         specialDayType: _specialDayType,
         groupId: groupId,
         communicationTypes: _selectedCommunicationTypes.toList(),
+        quickMessage: _selectedCommunicationTypes.contains('Sohbet')
+            ? _quickMessageController.text.trim()
+            : null,
       ));
     }
 
@@ -423,7 +436,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                         color: isSelected ? AppColors.brand : AppColors.surface,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isSelected ? AppColors.brand : AppColors.divider,
+                          color:
+                              isSelected ? AppColors.brand : AppColors.divider,
                           width: 0.5,
                         ),
                       ),
@@ -433,9 +447,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             color: isSelected
                                 ? Colors.white
                                 : AppColors.textSecondary,
-                            fontWeight: isSelected
-                                ? FontWeight.w500
-                                : FontWeight.w400,
+                            fontWeight:
+                                isSelected ? FontWeight.w500 : FontWeight.w400,
                           )),
                     ),
                   );
@@ -459,8 +472,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                               isSelected ? AppColors.brand : AppColors.surface,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color:
-                                isSelected ? AppColors.brand : AppColors.divider,
+                            color: isSelected
+                                ? AppColors.brand
+                                : AppColors.divider,
                             width: 0.5,
                           ),
                         ),
@@ -480,9 +494,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 ),
               ],
             ]),
-
             const SizedBox(height: 12),
-
             if (_isContactType) ...[
               _buildCard(children: [
                 GestureDetector(
@@ -521,8 +533,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       final isSel = _selectedCommunicationTypes.contains(o);
                       return GestureDetector(
                         onTap: () => setState(() {
-                          if (isSel &&
-                              _selectedCommunicationTypes.length > 1) {
+                          if (isSel && _selectedCommunicationTypes.length > 1) {
                             _selectedCommunicationTypes.remove(o);
                           } else {
                             _selectedCommunicationTypes.add(o);
@@ -546,14 +557,39 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                                 color: isSel
                                     ? Colors.white
                                     : AppColors.textSecondary,
-                                fontWeight: isSel
-                                    ? FontWeight.w500
-                                    : FontWeight.w400,
+                                fontWeight:
+                                    isSel ? FontWeight.w500 : FontWeight.w400,
                               )),
                         ),
                       );
                     }).toList(),
                   ),
+                  if (_selectedCommunicationTypes.contains('Sohbet')) ...[
+                    const SizedBox(height: 12),
+                    _buildLabel('Hazır Mesaj (opsiyonel)'),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Bildirim geldiğinde Gönder butonuna basınca bu mesaj kullanılır. Sık tekrarlayan hatırlatıcılarda güncellemeyi unutma.',
+                      style:
+                          TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _quickMessageController,
+                      maxLines: 3,
+                      maxLength: 300,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: InputDecoration(
+                        hintText: 'Örn: İyi ki doğdun, nice mutlu yıllara!',
+                        filled: true,
+                        fillColor: AppColors.surface,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: AppColors.divider),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
                 if (_type == 'Özel Gün') ...[
                   const SizedBox(height: 12),
@@ -565,8 +601,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       final isSel = _selectedCommunicationTypes.contains(o);
                       return GestureDetector(
                         onTap: () => setState(() {
-                          if (isSel &&
-                              _selectedCommunicationTypes.length > 1) {
+                          if (isSel && _selectedCommunicationTypes.length > 1) {
                             _selectedCommunicationTypes.remove(o);
                           } else {
                             _selectedCommunicationTypes.add(o);
@@ -590,14 +625,39 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                                 color: isSel
                                     ? Colors.white
                                     : AppColors.textSecondary,
-                                fontWeight: isSel
-                                    ? FontWeight.w500
-                                    : FontWeight.w400,
+                                fontWeight:
+                                    isSel ? FontWeight.w500 : FontWeight.w400,
                               )),
                         ),
                       );
                     }).toList(),
                   ),
+                  if (_selectedCommunicationTypes.contains('Sohbet')) ...[
+                    const SizedBox(height: 12),
+                    _buildLabel('Hazır Mesaj (opsiyonel)'),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Bildirim geldiğinde Gönder butonuna basınca bu mesaj kullanılır. Sık tekrarlayan hatırlatıcılarda güncellemeyi unutma.',
+                      style:
+                          TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _quickMessageController,
+                      maxLines: 3,
+                      maxLength: 300,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: InputDecoration(
+                        hintText: 'Örn: İyi ki doğdun, nice mutlu yıllara!',
+                        filled: true,
+                        fillColor: AppColors.surface,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: AppColors.divider),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   _buildLabel('Özel Gün Türü'),
                   const SizedBox(height: 8),
@@ -630,9 +690,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                                 color: isSel
                                     ? Colors.white
                                     : AppColors.textSecondary,
-                                fontWeight: isSel
-                                    ? FontWeight.w500
-                                    : FontWeight.w400,
+                                fontWeight:
+                                    isSel ? FontWeight.w500 : FontWeight.w400,
                               )),
                         ),
                       );
@@ -658,8 +717,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
-                            color:
-                                isSel ? AppColors.warnBg : AppColors.surface,
+                            color: isSel ? AppColors.warnBg : AppColors.surface,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: isSel
@@ -674,9 +732,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                                 color: isSel
                                     ? AppColors.warnText
                                     : AppColors.textSecondary,
-                                fontWeight: isSel
-                                    ? FontWeight.w500
-                                    : FontWeight.w400,
+                                fontWeight:
+                                    isSel ? FontWeight.w500 : FontWeight.w400,
                               )),
                         ),
                       );
@@ -696,8 +753,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                                   ? 'Her yıl otomatik hatırlatılacak'
                                   : 'Sadece bu yıl hatırlatılacak',
                               style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.textSecondary),
+                                  fontSize: 11, color: AppColors.textSecondary),
                             ),
                           ],
                         ),
@@ -768,24 +824,22 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 _buildLabel('Başlık'),
                 TextField(
                   controller: _titleController,
-                  decoration: const InputDecoration(
-                      hintText: 'Hatırlatıcı başlığı...'),
+                  decoration:
+                      const InputDecoration(hintText: 'Hatırlatıcı başlığı...'),
                   textCapitalization: TextCapitalization.sentences,
                   autofocus: !isEdit,
                 ),
               ]),
             ],
-
             const SizedBox(height: 12),
-
             _buildCard(children: [
               _buildLabel('Tarih & Saat'),
               const SizedBox(height: 8),
               GestureDetector(
                 onTap: _pickDateTime,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
                     color: AppColors.brandLight,
                     borderRadius: BorderRadius.circular(10),
@@ -809,9 +863,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 ),
               ),
             ]),
-
             const SizedBox(height: 12),
-
             _buildCard(children: [
               _buildLabel('Erteleme Süresi'),
               const SizedBox(height: 8),
@@ -825,14 +877,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.brand
-                            : AppColors.surface,
+                        color: isSelected ? AppColors.brand : AppColors.surface,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isSelected
-                              ? AppColors.brand
-                              : AppColors.divider,
+                          color:
+                              isSelected ? AppColors.brand : AppColors.divider,
                           width: 0.5,
                         ),
                       ),
@@ -842,69 +891,65 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             color: isSelected
                                 ? Colors.white
                                 : AppColors.textSecondary,
-                            fontWeight: isSelected
-                                ? FontWeight.w500
-                                : FontWeight.w400,
+                            fontWeight:
+                                isSelected ? FontWeight.w500 : FontWeight.w400,
                           )),
                     ),
                   );
                 }).toList(),
               ),
             ]),
-
             const SizedBox(height: 12),
-
             _buildCard(children: [
               _buildLabel('Profil'),
               const SizedBox(height: 8),
-              Row(
-                children: profiles.map((p) {
-                  final isSelected = _profileId == p.id;
-                  return GestureDetector(
-                    onTap: () => setState(() => _profileId = p.id),
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.brand
-                            : AppColors.surface,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isSelected
-                              ? AppColors.brand
-                              : AppColors.divider,
-                          width: 0.5,
-                        ),
-                      ),
-                      child: Text(p.name,
-                          style: TextStyle(
-                            fontSize: 13,
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: profiles.map((p) {
+                    final isSelected = _profileId == p.id;
+                    return GestureDetector(
+                      onTap: () => setState(() => _profileId = p.id),
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color:
+                              isSelected ? AppColors.brand : AppColors.surface,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
                             color: isSelected
-                                ? Colors.white
-                                : AppColors.textSecondary,
-                            fontWeight: isSelected
-                                ? FontWeight.w500
-                                : FontWeight.w400,
-                          )),
-                    ),
-                  );
-                }).toList(),
+                                ? AppColors.brand
+                                : AppColors.divider,
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Text(p.name,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.textSecondary,
+                              fontWeight: isSelected
+                                  ? FontWeight.w500
+                                  : FontWeight.w400,
+                            )),
+                      ),
+                    );
+                  }).toList(),
+                ),
               ),
             ]),
-
             const SizedBox(height: 24),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _save,
-                child: Text(
-                    isEdit ? 'Değişiklikleri Kaydet' : 'Hatırlatıcı Ekle'),
+                child:
+                    Text(isEdit ? 'Değişiklikleri Kaydet' : 'Hatırlatıcı Ekle'),
               ),
             ),
-
             const SizedBox(height: 32),
           ],
         ),

@@ -49,6 +49,9 @@ class Reminder extends HiveObject {
   @HiveField(14)
   String? taskId;
 
+  @HiveField(15)
+  String? quickMessage;
+
   Reminder({
     required this.id,
     required this.title,
@@ -65,5 +68,6 @@ class Reminder extends HiveObject {
     this.groupId,
     this.communicationTypes = const [],
     this.taskId,
+    this.quickMessage,
   });
 }

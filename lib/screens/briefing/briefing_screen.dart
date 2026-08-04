@@ -208,7 +208,6 @@ class _BriefingScreenState extends State<BriefingScreen> {
         : <String, String>{};
     final firstName = detail['firstName'] ?? '';
     final displayName = firstName.isNotEmpty ? firstName : '';
-    final initials = firstName.isNotEmpty ? firstName[0].toUpperCase() : '?';
 
     return Container(
       color: AppColors.brand,
@@ -271,23 +270,26 @@ class _BriefingScreenState extends State<BriefingScreen> {
                       context.findAncestorStateOfType<MainScreenState>();
                   mainState?.goToProfile();
                 },
-                child: CircleAvatar(
-                  backgroundColor: Colors.white.withValues(alpha: 0.2),
-                  child: Text(initials,
-                      style: const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.w600)),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.6), width: 1.5),
+                  ),
+                  child: const Icon(Icons.person_pin_outlined,
+                      color: Colors.white, size: 20),
                 ),
               ),
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: () => _showHelp(context),
-                child: CircleAvatar(
-                  backgroundColor: Colors.white.withValues(alpha: 0.2),
-                  child: const Text('i',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18)),
+                child: const SizedBox(
+                  width: 36,
+                  height: 36,
+                  child:
+                      Icon(Icons.info_outline, color: Colors.white, size: 28),
                 ),
               ),
             ],
@@ -714,51 +716,52 @@ class _BriefingScreenState extends State<BriefingScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text('Her Şeyim — Nasıl Kullanılır?',
+            const Text('LEGAT — Nasıl Kullanılır?',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
             const SizedBox(height: 20),
             _helpSection('📋 Görevler', [
-              'Görev eklemek için Görevler sekmesindeki + butonuna bas',
-              'Görevi sola kaydır → Sil',
-              'Görevi sağa kaydır → Düzenle',
-              'Göreve tıkla → Detay ve düzenleme',
-              'Tamamlanma yüzdesi düzenleme ekranından ayarlanır',
+              'Alttaki + butonuna dokunarak görev ekle',
+              'Sağa kaydır → Düzenle · Sola kaydır → Sil',
+              'Çift dokun → Düzenleme ekranını aç',
+              'Görev tamamlanınca bağlı hatırlatıcı da otomatik tamamlanır',
             ]),
             _helpSection('📝 Notlar', [
-              'Not eklemek için Notlar sekmesindeki + butonuna bas',
-              'Notu sola kaydır → Sil',
-              'Notu sağa kaydır → Düzenle',
-              '"→ Göreve Dönüştür" butonu notu göreve çevirir',
-              'Göreve dönüşen notlar üstü çizili olarak görünür',
+              'Alttaki + butonuna dokunarak not ekle',
+              '"→ Dönüştür" ile notu Göreve veya Hatırlatıcıya çevir',
+              'Arama ikonuyla başlık ve içerikte ara, sıralama seç',
             ]),
             _helpSection('🔔 Hatırlatıcılar', [
-              'Hatırlatıcılar sekmesinden yönet',
-              'Arama türü seçilirse rehberden kişi bilgisi girilir',
-              'Hatırlatıcıyı sola kaydır → Sil',
-              'Hatırlatıcıyı sağa kaydır → Tamamlandı olarak işaretle',
-              'Erteleme süresi ekleme ekranından ayarlanır',
+              'Arama türünde rehberden kişi seçilir; Ara veya Sohbet ile iletişime geç',
+              'Bildirim üzerindeki Tamamlandı/Ertele butonlarıyla uygulamayı açmadan işlem yap',
+              '"Görev" filtresiyle görevlere bağlı hatırlatıcılar ayrıca görülebilir',
             ]),
             _helpSection('📅 Takvim', [
-              'Google, Outlook ve Apple takvimleri bağlanabilir',
-              'Ay / Hafta / Gün görünümleri arasında geç',
-              'Toplantı detayına tıkla → Not ve aksiyonlar ekle',
+              '2 Haftalık/Aylık görünümler arasında geçiş yap',
+              'Bir güne dokunarak o günün görev ve hatırlatıcılarını gör',
+              'Profil sekmeleriyle takvimi filtrele',
             ]),
-            _helpSection('⚡ Hızlı Ekle', [
-              'Herhangi bir sekme ikonuna uzun bas → Hızlı Ekle menüsü açılır',
-              'Görev, Not veya Hatırlatıcı hızlıca eklenebilir',
+            _helpSection('🗓️ Takvime Ekle', [
+              'Görev, Not veya Hatırlatıcıyı uzun basılı menüden telefonunun kendi takvim uygulamasına (Google/Samsung/Outlook) tek dokunuşla ekleyebilirsin',
             ]),
             _helpSection('👤 Profil Sistemi', [
-              'Kişisel ve İş profilleri ayrı takip edilir',
-              'Üstteki profil barından anlık geçiş yapılır',
-              '"Tümü" seçilince tüm profiller birlikte görünür',
-              'Her görev/not/hatırlatıcı bir profile atanır',
+              'Sınırsız sayıda özel profil oluşturabilirsin',
+              'Profil dairesine dokun → Kartvizit bilgileri; köşedeki kalem ikonuna dokun → Düzenle',
+              'Kartvizit ekranındaki "⋮" menüsünden profili düzenleyebilir veya silebilirsin',
+            ]),
+            _helpSection('⚡ Hızlı Ekle', [
+              'Ekranın altındaki mavi (+) butonuna dokunarak Görev/Not/Hatırlatıcı seçebilirsin',
+              'Bu buton sürüklenebilir; istediğin kenara veya orta konumuna bırakabilirsin',
+            ]),
+            _helpSection('🔕 Bildirimler', [
+              'İlk açılışta bildirim izni istenir, istersen "bir daha gösterme" seçebilirsin',
+              'Profil > Bildirimler\'den bildirim sesini sistem ayarlarından değiştirebilirsin',
             ]),
             _helpSection('☀️ Bugün Ekranı', [
-              'Tüm profillerden özet her zaman burada görünür',
-              'Yaklaşan: 7 gün içindeki işlemler',
-              'Geciken: Tarihi geçmiş tamamlanmamış işlemler',
-              'Arama hatırlatıcıları için "Ara" butonu doğrudan çalışır',
-              'İstatistik kartlarına tıklayarak ilgili sekmeye geç',
+              'Tüm profillerin özeti burada; istatistik kartlarına dokununca ilgili sekmeye geçersin',
+              'Bugüne ait hatırlatıcılar ve yaklaşan görevler burada listelenir',
+            ]),
+            _helpSection('⚙️ Ayarlar', [
+              'Profil sekmesinden tamamlanmış görev ve hatırlatıcıları toplu temizleyebilirsin',
             ]),
             const SizedBox(height: 16),
           ],

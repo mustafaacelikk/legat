@@ -181,8 +181,11 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     if (pickedTime == null) return;
     setState(() {
       _reminderDateTime = DateTime(
-        pickedDate.year, pickedDate.month, pickedDate.day,
-        pickedTime.hour, pickedTime.minute,
+        pickedDate.year,
+        pickedDate.month,
+        pickedDate.day,
+        pickedTime.hour,
+        pickedTime.minute,
       );
     });
     FocusManager.instance.primaryFocus?.unfocus();
@@ -405,36 +408,42 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
             _buildCard(children: [
               _buildLabel('Profil'),
               const SizedBox(height: 8),
-              Row(
-                children: profiles.map((p) {
-                  final isSelected = _profileId == p.id;
-                  return GestureDetector(
-                    onTap: () => setState(() => _profileId = p.id),
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected ? AppColors.brand : AppColors.surface,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: profiles.map((p) {
+                    final isSelected = _profileId == p.id;
+                    return GestureDetector(
+                      onTap: () => setState(() => _profileId = p.id),
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
                           color:
-                              isSelected ? AppColors.brand : AppColors.divider,
-                          width: 0.5,
-                        ),
-                      ),
-                      child: Text(p.name,
-                          style: TextStyle(
-                            fontSize: 13,
+                              isSelected ? AppColors.brand : AppColors.surface,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
                             color: isSelected
-                                ? Colors.white
-                                : AppColors.textSecondary,
-                            fontWeight:
-                                isSelected ? FontWeight.w500 : FontWeight.w400,
-                          )),
-                    ),
-                  );
-                }).toList(),
+                                ? AppColors.brand
+                                : AppColors.divider,
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Text(p.name,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.textSecondary,
+                              fontWeight: isSelected
+                                  ? FontWeight.w500
+                                  : FontWeight.w400,
+                            )),
+                      ),
+                    );
+                  }).toList(),
+                ),
               ),
             ]),
             const SizedBox(height: 12),
@@ -620,8 +629,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                           color: isSel ? AppColors.brand : AppColors.surface,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color:
-                                isSel ? AppColors.brand : AppColors.divider,
+                            color: isSel ? AppColors.brand : AppColors.divider,
                             width: 0.5,
                           ),
                         ),
@@ -631,9 +639,8 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                               color: isSel
                                   ? Colors.white
                                   : AppColors.textSecondary,
-                              fontWeight: isSel
-                                  ? FontWeight.w500
-                                  : FontWeight.w400,
+                              fontWeight:
+                                  isSel ? FontWeight.w500 : FontWeight.w400,
                             )),
                       ),
                     );
@@ -670,9 +677,8 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                                 color: isSel
                                     ? AppColors.brandMid
                                     : AppColors.textSecondary,
-                                fontWeight: isSel
-                                    ? FontWeight.w600
-                                    : FontWeight.w400,
+                                fontWeight:
+                                    isSel ? FontWeight.w600 : FontWeight.w400,
                               )),
                         ),
                       );
@@ -690,8 +696,8 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.brandLight,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: AppColors.brandBorder, width: 0.5),
+                      border:
+                          Border.all(color: AppColors.brandBorder, width: 0.5),
                     ),
                     child: Row(
                       children: [

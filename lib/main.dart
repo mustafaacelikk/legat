@@ -81,7 +81,7 @@ class HerSeyimApp extends StatelessWidget {
         systemNavigationBarIconBrightness: Brightness.light,
       ),
       child: MaterialApp(
-        title: 'Her Şeyim',
+        title: 'LEGAT',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         localizationsDelegates: const [

@@ -63,6 +63,19 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   void goToReminder(String reminderId) {
     setState(() => _currentIndex = 4);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final reminderProvider =
+          Provider.of<ReminderProvider>(context, listen: false);
+      final reminder =
+          reminderProvider.all.where((r) => r.id == reminderId).firstOrNull;
+      if (reminder != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => AddReminderScreen(reminder: reminder)),
+        );
+      }
+    });
   }
 
   Future<void> _onWillPop() async {

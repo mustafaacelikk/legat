@@ -32,13 +32,14 @@ class ReminderAdapter extends TypeAdapter<Reminder> {
       groupId: fields[12] as String?,
       communicationTypes: (fields[13] as List).cast<String>(),
       taskId: fields[14] as String?,
+      quickMessage: fields[15] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Reminder obj) {
     writer
-      ..writeByte(15)
+      ..writeByte(16)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -68,7 +69,9 @@ class ReminderAdapter extends TypeAdapter<Reminder> {
       ..writeByte(13)
       ..write(obj.communicationTypes)
       ..writeByte(14)
-      ..write(obj.taskId);
+      ..write(obj.taskId)
+      ..writeByte(15)
+      ..write(obj.quickMessage);
   }
 
   @override

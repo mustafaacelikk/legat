@@ -5,6 +5,7 @@ import '../../providers/profile_provider.dart';
 import '../../providers/reminder_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../models/task_model.dart';
+import '../../services/calendar_intent_service.dart';
 import 'add_task_screen.dart';
 
 class TasksScreen extends StatefulWidget {
@@ -17,17 +18,26 @@ class TasksScreen extends StatefulWidget {
 
 class _TasksScreenState extends State<TasksScreen> {
   late String _filter = widget.initialFilter ?? 'Tümü';
-  final _filters = ['Tümü', 'Devam Ediyor', 'Planlı', 'Beklemede', 'Geciken', 'Tamamlandı'];
+  final _filters = [
+    'Tümü',
+    'Devam Ediyor',
+    'Planlı',
+    'Beklemede',
+    'Geciken',
+    'Tamamlandı'
+  ];
   String _searchQuery = '';
   String _sortType = 'Öncelik'; // 'Tarih' | 'Öncelik' | 'Alfabetik'
 
   List<Task> _applyFilter(List<Task> tasks) {
     if (_filter == 'Tümü') return tasks;
     if (_filter == 'Geciken') {
-      return tasks.where((t) =>
-          t.dueDate != null &&
-          t.dueDate!.isBefore(DateTime.now()) &&
-          t.status != 'Tamamlandı').toList();
+      return tasks
+          .where((t) =>
+              t.dueDate != null &&
+              t.dueDate!.isBefore(DateTime.now()) &&
+              t.status != 'Tamamlandı')
+          .toList();
     }
     return tasks.where((t) => t.status == _filter).toList();
   }
@@ -43,13 +53,16 @@ class _TasksScreenState extends State<TasksScreen> {
 
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
-      tasks = tasks.where((t) =>
-          t.title.toLowerCase().contains(q) ||
-          t.description.toLowerCase().contains(q)).toList();
+      tasks = tasks
+          .where((t) =>
+              t.title.toLowerCase().contains(q) ||
+              t.description.toLowerCase().contains(q))
+          .toList();
     }
 
     if (_sortType == 'Alfabetik') {
-      tasks.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+      tasks.sort(
+          (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
     } else if (_sortType == 'Tarih') {
       tasks.sort((a, b) {
         if (a.dueDate == null && b.dueDate == null) return 0;
@@ -59,7 +72,8 @@ class _TasksScreenState extends State<TasksScreen> {
       });
     } else {
       const order = ['Kritik', 'Yüksek', 'Orta', 'Düşük'];
-      tasks.sort((a, b) => order.indexOf(a.priority).compareTo(order.indexOf(b.priority)));
+      tasks.sort((a, b) =>
+          order.indexOf(a.priority).compareTo(order.indexOf(b.priority)));
     }
 
     return Scaffold(
@@ -75,19 +89,24 @@ class _TasksScreenState extends State<TasksScreen> {
               Container(
                 width: double.infinity,
                 color: AppColors.brandLight,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   children: [
                     const Icon(Icons.search, size: 14, color: AppColors.brand),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text('"$_searchQuery" için sonuçlar',
-                          style: const TextStyle(fontSize: 12, color: AppColors.brand, fontWeight: FontWeight.w500),
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.brand,
+                              fontWeight: FontWeight.w500),
                           overflow: TextOverflow.ellipsis),
                     ),
                     GestureDetector(
                       onTap: () => setState(() => _searchQuery = ''),
-                      child: const Icon(Icons.close, size: 16, color: AppColors.brand),
+                      child: const Icon(Icons.close,
+                          size: 16, color: AppColors.brand),
                     ),
                   ],
                 ),
@@ -137,26 +156,18 @@ class _TasksScreenState extends State<TasksScreen> {
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.manage_search, color: Colors.white, size: 20),
+                  child: const Icon(Icons.manage_search,
+                      color: Colors.white, size: 20),
                 ),
               ),
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: () => _showHelp(context),
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Center(
-                    child: Text('i',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16)),
-                  ),
+                child: const SizedBox(
+                  width: 36,
+                  height: 36,
+                  child:
+                      Icon(Icons.info_outline, color: Colors.white, size: 28),
                 ),
               ),
             ],
@@ -334,9 +345,7 @@ class _TasksScreenState extends State<TasksScreen> {
         child: Container(
           margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(
-            color: isDone
-                ? const Color(0xFFE0F2F1)
-                : const Color(0xFFE8F0FE),
+            color: isDone ? const Color(0xFFE0F2F1) : const Color(0xFFE8F0FE),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isDone
@@ -345,150 +354,156 @@ class _TasksScreenState extends State<TasksScreen> {
             ),
           ),
           child: ListTile(
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          leading: GestureDetector(
-            onTap: () {
-              final tp = context.read<TaskProvider>();
-              task.status = isDone ? 'Planlı' : 'Tamamlandı';
-              tp.update(task);
-            },
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: isDone ? AppColors.successBg : priorityBg,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                isDone ? Icons.check_circle : Icons.check_circle_outline,
-                color: isDone ? AppColors.successText : priorityText,
-                size: 18,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            leading: GestureDetector(
+              onTap: () async {
+                final tp = context.read<TaskProvider>();
+                final reminderProvider = context.read<ReminderProvider>();
+                final newStatus = isDone ? 'Planlı' : 'Tamamlandı';
+                task.status = newStatus;
+                tp.update(task);
+                await reminderProvider.setCompletedForTask(
+                    task.id, newStatus == 'Tamamlandı');
+              },
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: isDone ? AppColors.successBg : priorityBg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  isDone ? Icons.check_circle : Icons.check_circle_outline,
+                  color: isDone ? AppColors.successText : priorityText,
+                  size: 18,
+                ),
               ),
             ),
-          ),
-          title: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  task.title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: isDone
-                        ? AppColors.textSecondary
-                        : AppColors.textPrimary,
-                    decoration: isDone ? TextDecoration.lineThrough : null,
+            title: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    task.title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: isDone
+                          ? AppColors.textSecondary
+                          : AppColors.textPrimary,
+                      decoration: isDone ? TextDecoration.lineThrough : null,
+                    ),
                   ),
                 ),
-              ),
-              if (hasReminder) ...[
-                const SizedBox(width: 6),
-                const Icon(Icons.notifications_active,
-                    size: 14, color: AppColors.warnText),
+                if (hasReminder) ...[
+                  const SizedBox(width: 6),
+                  const Icon(Icons.notifications_active,
+                      size: 14, color: AppColors.warnText),
+                ],
               ],
-            ],
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              task.dueDate != null
-                  ? Text(
-                      'Bitiş: ${task.dueDate!.day.toString().padLeft(2, '0')}.${task.dueDate!.month.toString().padLeft(2, '0')}.${task.dueDate!.year}',
-                      style: const TextStyle(
-                          fontSize: 11, color: AppColors.textSecondary),
-                    )
-                  : const Text('Sürekli Görev',
-                      style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.brand,
-                          fontWeight: FontWeight.w500)),
-              if (task.dueDate != null && !isDone) ...[
-                const SizedBox(height: 6),
-                Builder(builder: (context) {
-                  final now = DateTime.now();
-                  final diff = task.dueDate!.difference(now).inDays;
-                  String countdownText;
-                  Color countdownColor;
-                  if (diff < 0) {
-                    countdownText = '${diff.abs()} gün geçti';
-                    countdownColor = const Color(0xFFB71C1C);
-                  } else if (diff == 0) {
-                    countdownText = 'Bugün!';
-                    countdownColor = const Color(0xFFE65100);
-                  } else if (diff == 1) {
-                    countdownText = 'Yarın';
-                    countdownColor = const Color(0xFFE65100);
-                  } else {
-                    countdownText = '$diff gün sonra';
-                    countdownColor = AppColors.textSecondary;
-                  }
-                  return Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: countdownColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                          color: countdownColor.withValues(alpha: 0.3)),
-                    ),
-                    child: Text('⏱ $countdownText',
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                task.dueDate != null
+                    ? Text(
+                        'Bitiş: ${task.dueDate!.day.toString().padLeft(2, '0')}.${task.dueDate!.month.toString().padLeft(2, '0')}.${task.dueDate!.year}',
+                        style: const TextStyle(
+                            fontSize: 11, color: AppColors.textSecondary),
+                      )
+                    : const Text('Sürekli Görev',
                         style: TextStyle(
-                            fontSize: 9,
-                            color: countdownColor,
+                            fontSize: 11,
+                            color: AppColors.brand,
                             fontWeight: FontWeight.w500)),
-                  );
-                }),
+                if (task.dueDate != null && !isDone) ...[
+                  const SizedBox(height: 6),
+                  Builder(builder: (context) {
+                    final now = DateTime.now();
+                    final diff = task.dueDate!.difference(now).inDays;
+                    String countdownText;
+                    Color countdownColor;
+                    if (diff < 0) {
+                      countdownText = '${diff.abs()} gün geçti';
+                      countdownColor = const Color(0xFFB71C1C);
+                    } else if (diff == 0) {
+                      countdownText = 'Bugün!';
+                      countdownColor = const Color(0xFFE65100);
+                    } else if (diff == 1) {
+                      countdownText = 'Yarın';
+                      countdownColor = const Color(0xFFE65100);
+                    } else {
+                      countdownText = '$diff gün sonra';
+                      countdownColor = AppColors.textSecondary;
+                    }
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: countdownColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: countdownColor.withValues(alpha: 0.3)),
+                      ),
+                      child: Text('⏱ $countdownText',
+                          style: TextStyle(
+                              fontSize: 9,
+                              color: countdownColor,
+                              fontWeight: FontWeight.w500)),
+                    );
+                  }),
+                ],
+                if (task.completionPercent > 0) ...[
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    value: task.completionPercent / 100,
+                    backgroundColor: const Color(0xFFBBCEFA),
+                    color: const Color(0xFF1F3864),
+                    minHeight: 3,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ],
               ],
-              if (task.completionPercent > 0) ...[
-                const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: task.completionPercent / 100,
-                  backgroundColor: const Color(0xFFBBCEFA),
-                  color: const Color(0xFF1F3864),
-                  minHeight: 3,
-                  borderRadius: BorderRadius.circular(2),
+            ),
+            trailing: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: priorityBg,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(task.priority,
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: priorityText)),
                 ),
-              ],
-            ],
-          ),
-          trailing: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: priorityBg,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(task.priority,
+                const SizedBox(height: 4),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: isDone ? AppColors.successBg : AppColors.surface,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppColors.divider, width: 0.5),
+                  ),
+                  child: Text(
+                    isDone ? 'Tamamlandı' : task.status,
                     style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
-                        color: priorityText)),
-              ),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: isDone ? AppColors.successBg : AppColors.surface,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: AppColors.divider, width: 0.5),
+                        color: isDone
+                            ? AppColors.successText
+                            : AppColors.textSecondary),
+                  ),
                 ),
-                child: Text(
-                  isDone ? 'Tamamlandı' : task.status,
-                  style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      color: isDone
-                          ? AppColors.successText
-                          : AppColors.textSecondary),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
         ),
       ),
     );
@@ -507,7 +522,8 @@ class _TasksScreenState extends State<TasksScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 40, height: 4,
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
                 color: AppColors.grayBorder,
                 borderRadius: BorderRadius.circular(2),
@@ -516,9 +532,11 @@ class _TasksScreenState extends State<TasksScreen> {
             const SizedBox(height: 12),
             Text(task.title,
                 style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary),
-                maxLines: 1, overflow: TextOverflow.ellipsis),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
             const SizedBox(height: 4),
             const Divider(color: AppColors.divider),
             ListTile(
@@ -526,33 +544,61 @@ class _TasksScreenState extends State<TasksScreen> {
               title: const Text('Düzenle'),
               onTap: () {
                 Navigator.pop(ctx);
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => AddTaskScreen(task: task)));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => AddTaskScreen(task: task)));
               },
             ),
+            if (task.dueDate != null)
+              ListTile(
+                leading:
+                    const Icon(Icons.event_outlined, color: AppColors.brand),
+                title: const Text('Takvime Ekle'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  CalendarIntentService.addEvent(
+                    title: task.title,
+                    description: task.description,
+                    start: task.dueDate!,
+                    allDay: true,
+                  );
+                },
+              ),
             ListTile(
               leading: Icon(
-                isDone ? Icons.radio_button_unchecked : Icons.check_circle_outline,
+                isDone
+                    ? Icons.radio_button_unchecked
+                    : Icons.check_circle_outline,
                 color: isDone ? AppColors.textSecondary : AppColors.successText,
               ),
-              title: Text(isDone ? 'Tamamlandı İşaretini Kaldır' : 'Tamamlandı Olarak İşaretle'),
-              onTap: () {
+              title: Text(isDone
+                  ? 'Tamamlandı İşaretini Kaldır'
+                  : 'Tamamlandı Olarak İşaretle'),
+              onTap: () async {
                 Navigator.pop(ctx);
                 final tp = context.read<TaskProvider>();
-                task.status = isDone ? 'Planlı' : 'Tamamlandı';
+                final reminderProvider = context.read<ReminderProvider>();
+                final newStatus = isDone ? 'Planlı' : 'Tamamlandı';
+                task.status = newStatus;
                 tp.update(task);
+                await reminderProvider.setCompletedForTask(
+                    task.id, newStatus == 'Tamamlandı');
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete_outline, color: AppColors.dangerText),
-              title: const Text('Sil', style: TextStyle(color: AppColors.dangerText)),
+              leading:
+                  const Icon(Icons.delete_outline, color: AppColors.dangerText),
+              title: const Text('Sil',
+                  style: TextStyle(color: AppColors.dangerText)),
               onTap: () async {
                 Navigator.pop(ctx);
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (_) => AlertDialog(
                     title: const Text('Görevi Sil'),
-                    content: const Text('Bu görevi silmek istediğinize emin misiniz?'),
+                    content: const Text(
+                        'Bu görevi silmek istediğinize emin misiniz?'),
                     actions: [
                       TextButton(
                           onPressed: () => Navigator.pop(context, false),
@@ -585,13 +631,16 @@ class _TasksScreenState extends State<TasksScreen> {
           padding: const EdgeInsets.only(top: 60),
           child: Column(
             children: [
-              const Icon(Icons.search_off, size: 64, color: AppColors.grayBorder),
+              const Icon(Icons.search_off,
+                  size: 64, color: AppColors.grayBorder),
               const SizedBox(height: 16),
               Text('"$_searchQuery" için sonuç bulunamadı',
-                  style: const TextStyle(fontSize: 16, color: AppColors.textSecondary)),
+                  style: const TextStyle(
+                      fontSize: 16, color: AppColors.textSecondary)),
               const SizedBox(height: 8),
               const Text('Farklı bir kelime ile aramayı dene',
-                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                  style:
+                      TextStyle(fontSize: 13, color: AppColors.textSecondary)),
             ],
           ),
         ),
@@ -722,7 +771,7 @@ class _TasksScreenState extends State<TasksScreen> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: 12),
             const Text(
-                '• Sağa kaydır: düzenle · Sola kaydır: sil\n• Basılı tut: hızlı menü (düzenle/tamamla/sil)\n• Çift dokun: düzenleme ekranını aç\n• Arama ikonu: başlık ve açıklamada ara, sıralama seç\n• Alttaki + butonu: hızlı görev/not/hatırlatıcı ekle',
+                '• Sağa kaydır: düzenle · Sola kaydır: sil\n• Basılı tut: hızlı menü (düzenle/tamamla/sil/Takvime Ekle)\n• Çift dokun: düzenleme ekranını aç\n• Arama ikonu: başlık ve açıklamada ara, sıralama seç\n• Alttaki + butonu: hızlı görev/not/hatırlatıcı ekle',
                 style: TextStyle(
                     fontSize: 13, color: AppColors.textSecondary, height: 1.6)),
             const SizedBox(height: 8),

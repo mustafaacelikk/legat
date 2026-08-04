@@ -1,16 +1,29 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:herseyim/main.dart';
+import 'package:herseyim/screens/notes/add_note_screen.dart';
+import 'package:herseyim/models/profile_model.dart';
 import 'test_helpers.dart';
 
 void main() {
-  testWidgets('Uygulama açılıyor', (WidgetTester tester) async {
+  testWidgets(
+      'Not ekle ekranı çok sayıda profille yatayda kaydırılabilir kalır (dikeyde büyümez)',
+      (WidgetTester tester) async {
     GoogleFonts.config.allowRuntimeFetching = false;
     late TestProviders providers;
 
     await tester.runAsync(() async {
       providers = await setupTestProviders();
+      for (int i = 1; i <= 10; i++) {
+        await providers.profileProvider.add(Profile(
+          id: '',
+          name: 'Test Profil $i',
+          type: 'custom',
+          colorValue: 0xFF1F3864,
+          createdAt: DateTime.now(),
+        ));
+      }
     });
 
     await tester.pumpWidget(
@@ -22,16 +35,18 @@ void main() {
           ChangeNotifierProvider.value(value: providers.profileProvider),
           ChangeNotifierProvider.value(value: providers.settingsProvider),
         ],
-        child: const HerSeyimApp(),
+        child: const MaterialApp(home: AddNoteScreen()),
       ),
     );
 
-    // Sürekli animasyonlar (ör. takvim, geri sayım rozetleri) yüzünden
-    // pumpAndSettle takılabileceğinden, birkaç sabit frame ilerletiyoruz.
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.byType(HerSeyimApp), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    final scrollView =
+        tester.widget<SingleChildScrollView>(find.byType(SingleChildScrollView).first);
+    expect(scrollView.scrollDirection, Axis.horizontal);
 
     await tester.runAsync(() async {
       await providers.dispose();
