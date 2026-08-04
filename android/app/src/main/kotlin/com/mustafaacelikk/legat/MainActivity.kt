@@ -1,4 +1,4 @@
-package com.example.herseyim
+package com.mustafaacelikk.legat
 
 import android.os.Build
 import android.os.Bundle

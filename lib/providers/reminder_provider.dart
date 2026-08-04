@@ -9,6 +9,7 @@ class ReminderProvider extends ChangeNotifier {
 
   late Box<Reminder> _box;
   final _uuid = const Uuid();
+  bool _isReloading = false;
 
   Future<void> init() async {
     if (!Hive.isAdapterRegistered(2)) {
@@ -21,12 +22,26 @@ class ReminderProvider extends ChangeNotifier {
   }
 
   Future<void> reload() async {
-    await _box.close();
-    _box = await Hive.openBox<Reminder>('reminders');
-    notifyListeners();
+    if (_isReloading) return;
+    _isReloading = true;
+    try {
+      if (_box.isOpen) {
+        await _box.close();
+      }
+      _box = await Hive.openBox<Reminder>('reminders');
+      notifyListeners();
+    } finally {
+      _isReloading = false;
+    }
   }
 
-  List<Reminder> get all => _box.values.toList();
+  List<Reminder> get all {
+    try {
+      return _box.values.toList();
+    } catch (_) {
+      return [];
+    }
+  }
 
   void notifyChanges() {
     notifyListeners();
