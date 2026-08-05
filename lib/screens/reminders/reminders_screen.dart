@@ -39,10 +39,6 @@ class _RemindersScreenState extends State<RemindersScreen> {
 
     List<Reminder> reminders = reminderProvider.byProfile(activeId);
 
-    if (_filter != 'Görev') {
-      reminders = reminders.where((r) => r.taskId == null).toList();
-    }
-
     if (_filter == 'Görev') {
       reminders = reminders.where((r) => r.taskId != null).toList();
     } else if (_filter == 'İletişim') {

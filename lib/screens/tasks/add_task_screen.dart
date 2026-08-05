@@ -33,6 +33,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   DateTime _reminderDateTime = DateTime.now().add(const Duration(hours: 1));
   final _reminderTypes = ['Zamanlı', 'Tekrarlayan'];
   String _reminderType = 'Zamanlı';
+  int _snoozeMinutes = 30;
   final _repeatPeriods = ['Günlük', 'Haftalık', 'Aylık', 'Yıllık'];
   String _repeatPeriod = 'Günlük';
 
@@ -64,6 +65,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
         _existingReminder = linkedReminders.first;
         _reminderEnabled = true;
         _reminderDateTime = _existingReminder!.scheduledAt;
+        _snoozeMinutes = _existingReminder!.snoozeMinutes;
         if (_existingReminder!.type.startsWith('Tekrarlayan:')) {
           _reminderType = 'Tekrarlayan';
           _repeatPeriod = _existingReminder!.type.split(':')[1];
@@ -225,6 +227,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
           _existingReminder!.type = reminderType;
           _existingReminder!.scheduledAt = _reminderDateTime;
           _existingReminder!.profileId = _profileId;
+          _existingReminder!.snoozeMinutes = _snoozeMinutes;
           reminderProvider.update(_existingReminder!);
         } else {
           reminderProvider.add(Reminder(
@@ -234,7 +237,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
             scheduledAt: _reminderDateTime,
             profileId: _profileId,
             createdAt: DateTime.now(),
-            snoozeMinutes: 30,
+            snoozeMinutes: _snoozeMinutes,
             taskId: t.id,
           ));
         }
@@ -266,7 +269,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
           scheduledAt: _reminderDateTime,
           profileId: _profileId,
           createdAt: DateTime.now(),
-          snoozeMinutes: 30,
+          snoozeMinutes: _snoozeMinutes,
           taskId: newTask.id,
         ));
       }
@@ -714,6 +717,39 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                       ],
                     ),
                   ),
+                ),
+                const SizedBox(height: 12),
+                _buildLabel('Erteleme Süresi'),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: [15, 30, 60].map((m) {
+                    final isSel = _snoozeMinutes == m;
+                    return GestureDetector(
+                      onTap: () => setState(() => _snoozeMinutes = m),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isSel ? AppColors.brand : AppColors.surface,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isSel ? AppColors.brand : AppColors.divider,
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Text('$m dk',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isSel
+                                  ? Colors.white
+                                  : AppColors.textSecondary,
+                              fontWeight:
+                                  isSel ? FontWeight.w500 : FontWeight.w400,
+                            )),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ],
             ]),

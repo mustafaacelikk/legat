@@ -96,9 +96,9 @@ class HerSeyimApp extends StatelessWidget {
         locale: const Locale('tr', 'TR'),
         home: MainScreen(key: mainScreenKey),
         builder: (context, child) {
-          return Listener(
+          return GestureDetector(
             behavior: HitTestBehavior.translucent,
-            onPointerDown: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+            onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
             child: child,
           );
         },
