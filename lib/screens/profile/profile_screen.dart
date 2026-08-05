@@ -1,6 +1,7 @@
 // lib/screens/profile/profile_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:android_intent_plus/android_intent.dart';
 import '../../providers/profile_provider.dart';
@@ -500,6 +501,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: 'Gizlilik',
             subtitle: 'Tüm veriler cihazınızda saklanır',
             onTap: null,
+          ),
+          _buildDivider(),
+          _buildSettingsItem(
+            icon: Icons.badge_outlined,
+            iconColor: AppColors.brand,
+            iconBg: AppColors.brandLight,
+            title: 'Test Kodun',
+            subtitle: context.watch<SettingsProvider>().testCode,
+            onTap: () {
+              Clipboard.setData(ClipboardData(
+                  text: context.read<SettingsProvider>().testCode));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Test kodu kopyalandı')),
+              );
+            },
           ),
         ],
       ),
