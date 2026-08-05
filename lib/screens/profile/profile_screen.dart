@@ -1119,7 +1119,9 @@ class ProfileDetailScreen extends StatefulWidget {
 class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
   final _formKey = GlobalKey<FormState>();
   late Map<String, TextEditingController> _controllers;
+  late Map<String, FocusNode> _focusNodes;
   bool _saving = false;
+  bool _dirty = false;
 
   final _fields = [
     {
@@ -1181,12 +1183,16 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
       for (final f in _fields)
         f['key'] as String: TextEditingController(text: detail[f['key']] ?? '')
     };
+    _focusNodes = {for (final f in _fields) f['key'] as String: FocusNode()};
   }
 
   @override
   void dispose() {
     for (final c in _controllers.values) {
       c.dispose();
+    }
+    for (final n in _focusNodes.values) {
+      n.dispose();
     }
     super.dispose();
   }
@@ -1205,6 +1211,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Bilgiler kaydedildi')),
       );
+      _dirty = false;
       Navigator.pop(context);
     }
   }
@@ -1213,154 +1220,189 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
   Widget build(BuildContext context) {
     final color = Color(widget.profile.colorValue);
 
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        titleSpacing: 4,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios,
-              size: 18, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: color.withValues(alpha: 0.4)),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) async {
+        if (didPop) return;
+        if (!_dirty) {
+          Navigator.of(context).pop();
+          return;
+        }
+        final action = await showDialog<String>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Kaydedilmemiş Değişiklikler'),
+            content: const Text(
+                'Bu kayıtta değişiklik yaptınız. Değişiklikleri kaydetmek istiyor musunuz?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, 'discard'),
+                child: const Text('İptal Et'),
               ),
-              child: Icon(
-                widget.profile.type == 'personal' ? Icons.person : Icons.work,
-                color: color,
-                size: 16,
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, 'save'),
+                child: const Text('Kaydet'),
               ),
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.profile.name,
-                  style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary),
-                ),
-                const Text('Kartvizit & İletişim',
-                    style: TextStyle(
-                        fontSize: 11, color: AppColors.textSecondary)),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
-            onSelected: (value) {
-              final provider = context.read<ProfileProvider>();
-              if (value == 'edit') {
-                showEditProfileDialog(context, widget.profile, provider);
-              } else if (value == 'delete') {
-                confirmDeleteProfile(context, widget.profile, provider,
-                    onDeleted: () => Navigator.pop(context));
-              }
-            },
-            itemBuilder: (ctx) => [
-              const PopupMenuItem(
-                value: 'edit',
-                child: Row(
-                  children: [
-                    Icon(Icons.edit_outlined, size: 18, color: AppColors.brand),
-                    SizedBox(width: 10),
-                    Text('Profili Düzenle'),
-                  ],
-                ),
-              ),
-              if (widget.profile.id != 'personal' &&
-                  widget.profile.id != 'work')
-                const PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete_outline,
-                          size: 18, color: AppColors.dangerText),
-                      SizedBox(width: 10),
-                      Text('Profili Sil',
-                          style: TextStyle(color: AppColors.dangerText)),
-                    ],
-                  ),
-                ),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: _saving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : GestureDetector(
-                    onTap: _save,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 7),
-                      decoration: BoxDecoration(
-                        color: AppColors.brand,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text('Kaydet',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600)),
+        );
+        if (action == 'save') {
+          await _save();
+        } else if (action == 'discard') {
+          _dirty = false;
+          if (context.mounted) Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.surface,
+        appBar: AppBar(
+          backgroundColor: AppColors.white,
+          elevation: 0,
+          titleSpacing: 4,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios,
+                size: 18, color: AppColors.textPrimary),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: color.withValues(alpha: 0.4)),
+                ),
+                child: Icon(
+                  widget.profile.type == 'personal' ? Icons.person : Icons.work,
+                  color: color,
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.profile.name,
+                    style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary),
+                  ),
+                  const Text('Kartvizit & İletişim',
+                      style: TextStyle(
+                          fontSize: 11, color: AppColors.textSecondary)),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
+              onSelected: (value) {
+                final provider = context.read<ProfileProvider>();
+                if (value == 'edit') {
+                  showEditProfileDialog(context, widget.profile, provider);
+                } else if (value == 'delete') {
+                  confirmDeleteProfile(context, widget.profile, provider,
+                      onDeleted: () => Navigator.pop(context));
+                }
+              },
+              itemBuilder: (ctx) => [
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_outlined,
+                          size: 18, color: AppColors.brand),
+                      SizedBox(width: 10),
+                      Text('Profili Düzenle'),
+                    ],
+                  ),
+                ),
+                if (widget.profile.id != 'personal' &&
+                    widget.profile.id != 'work')
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline,
+                            size: 18, color: AppColors.dangerText),
+                        SizedBox(width: 10),
+                        Text('Profili Sil',
+                            style: TextStyle(color: AppColors.dangerText)),
+                      ],
                     ),
                   ),
-          ),
-        ],
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Kartvizit önizleme
-            _buildCardPreview(color),
-            const SizedBox(height: 20),
-
-            // Form alanları
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.divider, width: 0.5),
-              ),
-              child: Column(
-                children: _fields.asMap().entries.map((entry) {
-                  final idx = entry.key;
-                  final f = entry.value;
-                  final isLast = idx == _fields.length - 1;
-                  return Column(
-                    children: [
-                      _buildField(f, color),
-                      if (!isLast)
-                        const Divider(
-                            height: 1,
-                            thickness: 0.5,
-                            indent: 56,
-                            color: AppColors.divider),
-                    ],
-                  );
-                }).toList(),
-              ),
+              ],
             ),
-            const SizedBox(height: 80),
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: _saving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : GestureDetector(
+                      onTap: _save,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: AppColors.brand,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text('Kaydet',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+            ),
           ],
+        ),
+        body: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              // Kartvizit önizleme
+              _buildCardPreview(color),
+              const SizedBox(height: 20),
+
+              // Form alanları
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.divider, width: 0.5),
+                ),
+                child: Column(
+                  children: _fields.asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final f = entry.value;
+                    final isLast = idx == _fields.length - 1;
+                    return Column(
+                      children: [
+                        _buildField(f, color),
+                        if (!isLast)
+                          const Divider(
+                              height: 1,
+                              thickness: 0.5,
+                              indent: 56,
+                              color: AppColors.divider),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 80),
+            ],
+          ),
         ),
       ),
     );
@@ -1466,6 +1508,10 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
   Widget _buildField(Map<String, Object> f, Color color) {
     final key = f['key'] as String;
     final isAddress = key == 'address';
+    final index = _fields.indexWhere((e) => e['key'] == key);
+    final isLast = index == _fields.length - 1;
+    final nextFocus =
+        isLast ? null : _focusNodes[_fields[index + 1]['key'] as String];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
@@ -1481,6 +1527,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
           Expanded(
             child: TextFormField(
               controller: _controllers[key],
+              focusNode: _focusNodes[key],
               maxLines: isAddress ? 2 : 1,
               keyboardType: key == 'email'
                   ? TextInputType.emailAddress
@@ -1493,8 +1540,19 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                   key == 'email' || key == 'phone' || key == 'website'
                       ? TextCapitalization.none
                       : TextCapitalization.words,
+              textInputAction:
+                  isLast ? TextInputAction.done : TextInputAction.next,
+              onFieldSubmitted: (_) {
+                if (isLast) {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                } else if (nextFocus != null) {
+                  FocusScope.of(context).requestFocus(nextFocus);
+                }
+              },
               // Canlı önizleme için rebuild
-              onChanged: (_) => setState(() {}),
+              onChanged: (_) => setState(() {
+                _dirty = true;
+              }),
               decoration: InputDecoration(
                 labelText: f['label'] as String,
                 hintText: f['hint'] as String,

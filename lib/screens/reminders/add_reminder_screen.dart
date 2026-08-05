@@ -23,6 +23,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   final _phoneController = TextEditingController();
   final _contactController = TextEditingController();
   final _quickMessageController = TextEditingController();
+  final _titleFocus = FocusNode();
+  final _contactFocus = FocusNode();
+  final _phoneFocus = FocusNode();
   String _type = 'Zamanlı';
   String _profileId = 'personal';
   DateTime _scheduledAt = DateTime.now();
@@ -55,6 +58,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   final Set<String> _selectedCommunicationTypes = {'Ara'};
   final _communicationOptions = ['Ara', 'Sohbet'];
 
+  bool _dirty = false;
+
   @override
   void initState() {
     super.initState();
@@ -83,7 +88,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       }
       if (r.contactName != null) _contactController.text = r.contactName!;
       if (r.contactPhone != null) _phoneController.text = r.contactPhone!;
-      if (r.quickMessage != null) _quickMessageController.text = r.quickMessage!;
+      if (r.quickMessage != null) {
+        _quickMessageController.text = r.quickMessage!;
+      }
       if (r.specialDayType != null) _specialDayType = r.specialDayType!;
       _isRecurringYearly = r.isRecurringYearly;
 
@@ -134,6 +141,19 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         }
       }
     }
+
+    _titleController.addListener(() {
+      if (!_dirty) setState(() => _dirty = true);
+    });
+    _contactController.addListener(() {
+      if (!_dirty) setState(() => _dirty = true);
+    });
+    _phoneController.addListener(() {
+      if (!_dirty) setState(() => _dirty = true);
+    });
+    _quickMessageController.addListener(() {
+      if (!_dirty) setState(() => _dirty = true);
+    });
   }
 
   @override
@@ -142,6 +162,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     _phoneController.dispose();
     _contactController.dispose();
     _quickMessageController.dispose();
+    _titleFocus.dispose();
+    _contactFocus.dispose();
+    _phoneFocus.dispose();
     super.dispose();
   }
 
@@ -178,6 +201,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     if (pickedTime == null) return;
 
     setState(() {
+      _dirty = true;
       _scheduledAt = DateTime(
         pickedDate.year,
         pickedDate.month,
@@ -213,6 +237,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       );
       if (mounted) {
         setState(() {
+          _dirty = true;
           _contactController.text = full?.displayName ?? contact.displayName;
           if (full != null && full.phones.isNotEmpty) {
             _phoneController.text = full.phones.first.number;
@@ -323,6 +348,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       ));
     }
 
+    _dirty = false;
     Navigator.pop(context);
   }
 
@@ -382,6 +408,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       ));
     }
 
+    _dirty = false;
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -396,74 +423,75 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     final profiles = context.watch<ProfileProvider>().all;
     final isEdit = widget.reminder != null;
 
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        title: Text(isEdit ? 'Hatırlatıcı Düzenle' : 'Yeni Hatırlatıcı'),
-        actions: [
-          TextButton(
-            onPressed: _save,
-            child: const Text('Kaydet',
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _buildCard(children: [
-              _buildLabel('Tür'),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: _types.map((t) {
-                  final isSelected = _type == t;
-                  return GestureDetector(
-                    onTap: () => setState(() {
-                      _type = t;
-                      if (_isContactType &&
-                          _contactController.text.isNotEmpty) {
-                        _titleController.text = _autoTitle();
-                      }
-                    }),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected ? AppColors.brand : AppColors.surface,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color:
-                              isSelected ? AppColors.brand : AppColors.divider,
-                          width: 0.5,
-                        ),
-                      ),
-                      child: Text(t,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: isSelected
-                                ? Colors.white
-                                : AppColors.textSecondary,
-                            fontWeight:
-                                isSelected ? FontWeight.w500 : FontWeight.w400,
-                          )),
-                    ),
-                  );
-                }).toList(),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) async {
+        if (didPop) return;
+        if (!_dirty) {
+          Navigator.of(context).pop();
+          return;
+        }
+        final action = await showDialog<String>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(
+                isEdit ? 'Kaydedilmemiş Değişiklikler' : 'Kaydedilmemiş Kayıt'),
+            content: Text(isEdit
+                ? 'Bu kayıtta değişiklik yaptınız. Değişiklikleri kaydetmek istiyor musunuz?'
+                : 'Girdiğiniz bilgiler henüz kaydedilmedi. Kaydetmek istiyor musunuz?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, 'discard'),
+                child: Text(isEdit ? 'İptal Et' : 'Vazgeç'),
               ),
-              if (_type == 'Tekrarlayan') ...[
-                const SizedBox(height: 12),
-                _buildLabel('Tekrar Sıklığı'),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, 'save'),
+                child: const Text('Kaydet'),
+              ),
+            ],
+          ),
+        );
+        if (action == 'save') {
+          _save();
+        } else if (action == 'discard') {
+          _dirty = false;
+          if (context.mounted) Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.surface,
+        appBar: AppBar(
+          title: Text(isEdit ? 'Hatırlatıcı Düzenle' : 'Yeni Hatırlatıcı'),
+          actions: [
+            TextButton(
+              onPressed: _save,
+              child: const Text('Kaydet',
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
+        body: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              _buildCard(children: [
+                _buildLabel('Tür'),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
-                  children: _repeatPeriods.map((p) {
-                    final isSelected = _repeatPeriod == p;
+                  children: _types.map((t) {
+                    final isSelected = _type == t;
                     return GestureDetector(
-                      onTap: () => setState(() => _repeatPeriod = p),
+                      onTap: () => setState(() {
+                        _dirty = true;
+                        _type = t;
+                        if (_isContactType &&
+                            _contactController.text.isNotEmpty) {
+                          _titleController.text = _autoTitle();
+                        }
+                      }),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 8),
@@ -478,7 +506,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             width: 0.5,
                           ),
                         ),
-                        child: Text(p,
+                        child: Text(t,
                             style: TextStyle(
                               fontSize: 13,
                               color: isSelected
@@ -492,424 +520,462 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     );
                   }).toList(),
                 ),
+                if (_type == 'Tekrarlayan') ...[
+                  const SizedBox(height: 12),
+                  _buildLabel('Tekrar Sıklığı'),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: _repeatPeriods.map((p) {
+                      final isSelected = _repeatPeriod == p;
+                      return GestureDetector(
+                        onTap: () => setState(() {
+                          _dirty = true;
+                          _repeatPeriod = p;
+                        }),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.brand
+                                : AppColors.surface,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppColors.brand
+                                  : AppColors.divider,
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Text(p,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppColors.textSecondary,
+                                fontWeight: isSelected
+                                    ? FontWeight.w500
+                                    : FontWeight.w400,
+                              )),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ]),
+              const SizedBox(height: 12),
+              if (_isContactType) ...[
+                _buildCard(children: [
+                  GestureDetector(
+                    onTap: _pickContact,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.brandLight,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.brandBorder),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.contacts_outlined,
+                              size: 18, color: AppColors.brand),
+                          SizedBox(width: 8),
+                          Text('Rehberden Seç',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.brand,
+                                  fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (_type == 'Mobil İletişim') ...[
+                    const SizedBox(height: 12),
+                    _buildLabel('İletişim Türleri (birden fazla seçilebilir)'),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: _communicationOptions.map((o) {
+                        final isSel = _selectedCommunicationTypes.contains(o);
+                        return GestureDetector(
+                          onTap: () => setState(() {
+                            _dirty = true;
+                            if (isSel &&
+                                _selectedCommunicationTypes.length > 1) {
+                              _selectedCommunicationTypes.remove(o);
+                            } else {
+                              _selectedCommunicationTypes.add(o);
+                            }
+                          }),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color:
+                                  isSel ? AppColors.brand : AppColors.surface,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color:
+                                    isSel ? AppColors.brand : AppColors.divider,
+                                width: 0.5,
+                              ),
+                            ),
+                            child: Text(o,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isSel
+                                      ? Colors.white
+                                      : AppColors.textSecondary,
+                                  fontWeight:
+                                      isSel ? FontWeight.w500 : FontWeight.w400,
+                                )),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    if (_selectedCommunicationTypes.contains('Sohbet')) ...[
+                      const SizedBox(height: 12),
+                      _buildLabel('Hazır Mesaj (opsiyonel)'),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Bildirim geldiğinde Gönder butonuna basınca bu mesaj kullanılır. Sık tekrarlayan hatırlatıcılarda güncellemeyi unutma.',
+                        style: TextStyle(
+                            fontSize: 11, color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _quickMessageController,
+                        maxLines: 3,
+                        maxLength: 300,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          hintText: 'Örn: İyi ki doğdun, nice mutlu yıllara!',
+                          filled: true,
+                          fillColor: AppColors.surface,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                const BorderSide(color: AppColors.divider),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                  if (_type == 'Özel Gün') ...[
+                    const SizedBox(height: 12),
+                    _buildLabel('İletişim Türleri (birden fazla seçilebilir)'),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: _communicationOptions.map((o) {
+                        final isSel = _selectedCommunicationTypes.contains(o);
+                        return GestureDetector(
+                          onTap: () => setState(() {
+                            _dirty = true;
+                            if (isSel &&
+                                _selectedCommunicationTypes.length > 1) {
+                              _selectedCommunicationTypes.remove(o);
+                            } else {
+                              _selectedCommunicationTypes.add(o);
+                            }
+                          }),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color:
+                                  isSel ? AppColors.brand : AppColors.surface,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color:
+                                    isSel ? AppColors.brand : AppColors.divider,
+                                width: 0.5,
+                              ),
+                            ),
+                            child: Text(o,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isSel
+                                      ? Colors.white
+                                      : AppColors.textSecondary,
+                                  fontWeight:
+                                      isSel ? FontWeight.w500 : FontWeight.w400,
+                                )),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    if (_selectedCommunicationTypes.contains('Sohbet')) ...[
+                      const SizedBox(height: 12),
+                      _buildLabel('Hazır Mesaj (opsiyonel)'),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Bildirim geldiğinde Gönder butonuna basınca bu mesaj kullanılır. Sık tekrarlayan hatırlatıcılarda güncellemeyi unutma.',
+                        style: TextStyle(
+                            fontSize: 11, color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _quickMessageController,
+                        maxLines: 3,
+                        maxLength: 300,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          hintText: 'Örn: İyi ki doğdun, nice mutlu yıllara!',
+                          filled: true,
+                          fillColor: AppColors.surface,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                const BorderSide(color: AppColors.divider),
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    _buildLabel('Özel Gün Türü'),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: _specialDayTypes.map((t) {
+                        final isSel = _specialDayType == t;
+                        return GestureDetector(
+                          onTap: () => setState(() {
+                            _dirty = true;
+                            _specialDayType = t;
+                            if (_contactController.text.isNotEmpty) {
+                              _titleController.text = _autoTitle();
+                            }
+                          }),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color:
+                                  isSel ? AppColors.brand : AppColors.surface,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color:
+                                    isSel ? AppColors.brand : AppColors.divider,
+                                width: 0.5,
+                              ),
+                            ),
+                            child: Text(t,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isSel
+                                      ? Colors.white
+                                      : AppColors.textSecondary,
+                                  fontWeight:
+                                      isSel ? FontWeight.w500 : FontWeight.w400,
+                                )),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildLabel('Hatırlatma Zamanı (birden fazla seçilebilir)'),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _reminderOffsets.map((o) {
+                        final isSel = _selectedOffsets.contains(o);
+                        return GestureDetector(
+                          onTap: () => setState(() {
+                            _dirty = true;
+                            if (isSel && _selectedOffsets.length > 1) {
+                              _selectedOffsets.remove(o);
+                            } else {
+                              _selectedOffsets.add(o);
+                            }
+                          }),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color:
+                                  isSel ? AppColors.warnBg : AppColors.surface,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isSel
+                                    ? AppColors.warnText
+                                    : AppColors.divider,
+                                width: isSel ? 1.5 : 0.5,
+                              ),
+                            ),
+                            child: Text(o,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isSel
+                                      ? AppColors.warnText
+                                      : AppColors.textSecondary,
+                                  fontWeight:
+                                      isSel ? FontWeight.w500 : FontWeight.w400,
+                                )),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildLabel('Her Yıl Tekrarlasın mı?'),
+                              const SizedBox(height: 2),
+                              Text(
+                                _isRecurringYearly
+                                    ? 'Her yıl otomatik hatırlatılacak'
+                                    : 'Sadece bu yıl hatırlatılacak',
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: _isRecurringYearly,
+                          onChanged: (v) => setState(() {
+                            _dirty = true;
+                            _isRecurringYearly = v;
+                          }),
+                          activeThumbColor: AppColors.brand,
+                        ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  _buildLabel('Hatırlatıcı Başlığı'),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _titleController,
+                    focusNode: _titleFocus,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) =>
+                        FocusScope.of(context).requestFocus(_contactFocus),
+                    decoration: InputDecoration(
+                      hintText: 'Otomatik oluşturulur, değiştirebilirsiniz',
+                      filled: true,
+                      fillColor: AppColors.surface,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppColors.divider),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildLabel('Kişi Adı'),
+                  TextField(
+                    controller: _contactController,
+                    focusNode: _contactFocus,
+                    decoration: const InputDecoration(hintText: 'Ad Soyad'),
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) =>
+                        FocusScope.of(context).requestFocus(_phoneFocus),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildLabel('Telefon Numarası'),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _phoneController,
+                          focusNode: _phoneFocus,
+                          decoration: const InputDecoration(
+                              hintText: '+90 5xx xxx xx xx'),
+                          keyboardType: TextInputType.phone,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) =>
+                              FocusManager.instance.primaryFocus?.unfocus(),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: _callNumber,
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.brandLight,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.brandBorder),
+                          ),
+                          child: const Icon(Icons.call,
+                              size: 20, color: AppColors.brand),
+                        ),
+                      ),
+                    ],
+                  ),
+                ]),
+              ] else ...[
+                _buildCard(children: [
+                  _buildLabel('Başlık'),
+                  TextField(
+                    controller: _titleController,
+                    focusNode: _titleFocus,
+                    decoration: const InputDecoration(
+                        hintText: 'Hatırlatıcı başlığı...'),
+                    textCapitalization: TextCapitalization.sentences,
+                    autofocus: !isEdit,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) =>
+                        FocusManager.instance.primaryFocus?.unfocus(),
+                  ),
+                ]),
               ],
-            ]),
-            const SizedBox(height: 12),
-            if (_isContactType) ...[
+              const SizedBox(height: 12),
               _buildCard(children: [
+                _buildLabel('Tarih & Saat'),
+                const SizedBox(height: 8),
                 GestureDetector(
-                  onTap: _pickContact,
+                  onTap: _pickDateTime,
                   child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
                       color: AppColors.brandLight,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.brandBorder),
+                      border:
+                          Border.all(color: AppColors.brandBorder, width: 0.5),
                     ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    child: Row(
                       children: [
-                        Icon(Icons.contacts_outlined,
-                            size: 18, color: AppColors.brand),
-                        SizedBox(width: 8),
-                        Text('Rehberden Seç',
-                            style: TextStyle(
-                                fontSize: 13,
-                                color: AppColors.brand,
-                                fontWeight: FontWeight.w500)),
+                        const Icon(Icons.access_time,
+                            size: 16, color: AppColors.brandMid),
+                        const SizedBox(width: 10),
+                        Text(
+                          '${_scheduledAt.day.toString().padLeft(2, '0')}.${_scheduledAt.month.toString().padLeft(2, '0')}.${_scheduledAt.year}  ${_scheduledAt.hour.toString().padLeft(2, '0')}:${_scheduledAt.minute.toString().padLeft(2, '0')}',
+                          style: const TextStyle(
+                              fontSize: 14,
+                              color: AppColors.brandMid,
+                              fontWeight: FontWeight.w500),
+                        ),
                       ],
                     ),
                   ),
                 ),
-                if (_type == 'Mobil İletişim') ...[
-                  const SizedBox(height: 12),
-                  _buildLabel('İletişim Türleri (birden fazla seçilebilir)'),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: _communicationOptions.map((o) {
-                      final isSel = _selectedCommunicationTypes.contains(o);
-                      return GestureDetector(
-                        onTap: () => setState(() {
-                          if (isSel && _selectedCommunicationTypes.length > 1) {
-                            _selectedCommunicationTypes.remove(o);
-                          } else {
-                            _selectedCommunicationTypes.add(o);
-                          }
-                        }),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isSel ? AppColors.brand : AppColors.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color:
-                                  isSel ? AppColors.brand : AppColors.divider,
-                              width: 0.5,
-                            ),
-                          ),
-                          child: Text(o,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isSel
-                                    ? Colors.white
-                                    : AppColors.textSecondary,
-                                fontWeight:
-                                    isSel ? FontWeight.w500 : FontWeight.w400,
-                              )),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  if (_selectedCommunicationTypes.contains('Sohbet')) ...[
-                    const SizedBox(height: 12),
-                    _buildLabel('Hazır Mesaj (opsiyonel)'),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Bildirim geldiğinde Gönder butonuna basınca bu mesaj kullanılır. Sık tekrarlayan hatırlatıcılarda güncellemeyi unutma.',
-                      style:
-                          TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: _quickMessageController,
-                      maxLines: 3,
-                      maxLength: 300,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        hintText: 'Örn: İyi ki doğdun, nice mutlu yıllara!',
-                        filled: true,
-                        fillColor: AppColors.surface,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: AppColors.divider),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-                if (_type == 'Özel Gün') ...[
-                  const SizedBox(height: 12),
-                  _buildLabel('İletişim Türleri (birden fazla seçilebilir)'),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: _communicationOptions.map((o) {
-                      final isSel = _selectedCommunicationTypes.contains(o);
-                      return GestureDetector(
-                        onTap: () => setState(() {
-                          if (isSel && _selectedCommunicationTypes.length > 1) {
-                            _selectedCommunicationTypes.remove(o);
-                          } else {
-                            _selectedCommunicationTypes.add(o);
-                          }
-                        }),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isSel ? AppColors.brand : AppColors.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color:
-                                  isSel ? AppColors.brand : AppColors.divider,
-                              width: 0.5,
-                            ),
-                          ),
-                          child: Text(o,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isSel
-                                    ? Colors.white
-                                    : AppColors.textSecondary,
-                                fontWeight:
-                                    isSel ? FontWeight.w500 : FontWeight.w400,
-                              )),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  if (_selectedCommunicationTypes.contains('Sohbet')) ...[
-                    const SizedBox(height: 12),
-                    _buildLabel('Hazır Mesaj (opsiyonel)'),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Bildirim geldiğinde Gönder butonuna basınca bu mesaj kullanılır. Sık tekrarlayan hatırlatıcılarda güncellemeyi unutma.',
-                      style:
-                          TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: _quickMessageController,
-                      maxLines: 3,
-                      maxLength: 300,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        hintText: 'Örn: İyi ki doğdun, nice mutlu yıllara!',
-                        filled: true,
-                        fillColor: AppColors.surface,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: AppColors.divider),
-                        ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 12),
-                  _buildLabel('Özel Gün Türü'),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: _specialDayTypes.map((t) {
-                      final isSel = _specialDayType == t;
-                      return GestureDetector(
-                        onTap: () => setState(() {
-                          _specialDayType = t;
-                          if (_contactController.text.isNotEmpty) {
-                            _titleController.text = _autoTitle();
-                          }
-                        }),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isSel ? AppColors.brand : AppColors.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color:
-                                  isSel ? AppColors.brand : AppColors.divider,
-                              width: 0.5,
-                            ),
-                          ),
-                          child: Text(t,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isSel
-                                    ? Colors.white
-                                    : AppColors.textSecondary,
-                                fontWeight:
-                                    isSel ? FontWeight.w500 : FontWeight.w400,
-                              )),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildLabel('Hatırlatma Zamanı (birden fazla seçilebilir)'),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _reminderOffsets.map((o) {
-                      final isSel = _selectedOffsets.contains(o);
-                      return GestureDetector(
-                        onTap: () => setState(() {
-                          if (isSel && _selectedOffsets.length > 1) {
-                            _selectedOffsets.remove(o);
-                          } else {
-                            _selectedOffsets.add(o);
-                          }
-                        }),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isSel ? AppColors.warnBg : AppColors.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: isSel
-                                  ? AppColors.warnText
-                                  : AppColors.divider,
-                              width: isSel ? 1.5 : 0.5,
-                            ),
-                          ),
-                          child: Text(o,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isSel
-                                    ? AppColors.warnText
-                                    : AppColors.textSecondary,
-                                fontWeight:
-                                    isSel ? FontWeight.w500 : FontWeight.w400,
-                              )),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildLabel('Her Yıl Tekrarlasın mı?'),
-                            const SizedBox(height: 2),
-                            Text(
-                              _isRecurringYearly
-                                  ? 'Her yıl otomatik hatırlatılacak'
-                                  : 'Sadece bu yıl hatırlatılacak',
-                              style: const TextStyle(
-                                  fontSize: 11, color: AppColors.textSecondary),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Switch(
-                        value: _isRecurringYearly,
-                        onChanged: (v) =>
-                            setState(() => _isRecurringYearly = v),
-                        activeThumbColor: AppColors.brand,
-                      ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 12),
-                _buildLabel('Hatırlatıcı Başlığı'),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: _titleController,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    hintText: 'Otomatik oluşturulur, değiştirebilirsiniz',
-                    filled: true,
-                    fillColor: AppColors.surface,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AppColors.divider),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _buildLabel('Kişi Adı'),
-                TextField(
-                  controller: _contactController,
-                  decoration: const InputDecoration(hintText: 'Ad Soyad'),
-                  textCapitalization: TextCapitalization.words,
-                ),
-                const SizedBox(height: 12),
-                _buildLabel('Telefon Numarası'),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _phoneController,
-                        decoration: const InputDecoration(
-                            hintText: '+90 5xx xxx xx xx'),
-                        keyboardType: TextInputType.phone,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: _callNumber,
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.brandLight,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.brandBorder),
-                        ),
-                        child: const Icon(Icons.call,
-                            size: 20, color: AppColors.brand),
-                      ),
-                    ),
-                  ],
-                ),
               ]),
-            ] else ...[
+              const SizedBox(height: 12),
               _buildCard(children: [
-                _buildLabel('Başlık'),
-                TextField(
-                  controller: _titleController,
-                  decoration:
-                      const InputDecoration(hintText: 'Hatırlatıcı başlığı...'),
-                  textCapitalization: TextCapitalization.sentences,
-                  autofocus: !isEdit,
-                ),
-              ]),
-            ],
-            const SizedBox(height: 12),
-            _buildCard(children: [
-              _buildLabel('Tarih & Saat'),
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: _pickDateTime,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: AppColors.brandLight,
-                    borderRadius: BorderRadius.circular(10),
-                    border:
-                        Border.all(color: AppColors.brandBorder, width: 0.5),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.access_time,
-                          size: 16, color: AppColors.brandMid),
-                      const SizedBox(width: 10),
-                      Text(
-                        '${_scheduledAt.day.toString().padLeft(2, '0')}.${_scheduledAt.month.toString().padLeft(2, '0')}.${_scheduledAt.year}  ${_scheduledAt.hour.toString().padLeft(2, '0')}:${_scheduledAt.minute.toString().padLeft(2, '0')}',
-                        style: const TextStyle(
-                            fontSize: 14,
-                            color: AppColors.brandMid,
-                            fontWeight: FontWeight.w500),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ]),
-            const SizedBox(height: 12),
-            _buildCard(children: [
-              _buildLabel('Erteleme Süresi'),
-              const SizedBox(height: 8),
-              Row(
-                children: _snoozeMins.map((m) {
-                  final isSelected = _snoozeMinutes == m;
-                  return GestureDetector(
-                    onTap: () => setState(() => _snoozeMinutes = m),
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected ? AppColors.brand : AppColors.surface,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color:
-                              isSelected ? AppColors.brand : AppColors.divider,
-                          width: 0.5,
-                        ),
-                      ),
-                      child: Text('$m dk',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: isSelected
-                                ? Colors.white
-                                : AppColors.textSecondary,
-                            fontWeight:
-                                isSelected ? FontWeight.w500 : FontWeight.w400,
-                          )),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ]),
-            const SizedBox(height: 12),
-            _buildCard(children: [
-              _buildLabel('Profil'),
-              const SizedBox(height: 8),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: profiles.map((p) {
-                    final isSelected = _profileId == p.id;
+                _buildLabel('Erteleme Süresi'),
+                const SizedBox(height: 8),
+                Row(
+                  children: _snoozeMins.map((m) {
+                    final isSelected = _snoozeMinutes == m;
                     return GestureDetector(
-                      onTap: () => setState(() => _profileId = p.id),
+                      onTap: () => setState(() {
+                        _dirty = true;
+                        _snoozeMinutes = m;
+                      }),
                       child: Container(
                         margin: const EdgeInsets.only(right: 8),
                         padding: const EdgeInsets.symmetric(
@@ -925,7 +991,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             width: 0.5,
                           ),
                         ),
-                        child: Text(p.name,
+                        child: Text('$m dk',
                             style: TextStyle(
                               fontSize: 13,
                               color: isSelected
@@ -939,19 +1005,65 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     );
                   }).toList(),
                 ),
+              ]),
+              const SizedBox(height: 12),
+              _buildCard(children: [
+                _buildLabel('Profil'),
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: profiles.map((p) {
+                      final isSelected = _profileId == p.id;
+                      return GestureDetector(
+                        onTap: () => setState(() {
+                          _dirty = true;
+                          _profileId = p.id;
+                        }),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.brand
+                                : AppColors.surface,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppColors.brand
+                                  : AppColors.divider,
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Text(p.name,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppColors.textSecondary,
+                                fontWeight: isSelected
+                                    ? FontWeight.w500
+                                    : FontWeight.w400,
+                              )),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _save,
+                  child: Text(
+                      isEdit ? 'Değişiklikleri Kaydet' : 'Hatırlatıcı Ekle'),
+                ),
               ),
-            ]),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _save,
-                child:
-                    Text(isEdit ? 'Değişiklikleri Kaydet' : 'Hatırlatıcı Ekle'),
-              ),
-            ),
-            const SizedBox(height: 32),
-          ],
+              const SizedBox(height: 32),
+            ],
+          ),
         ),
       ),
     );
