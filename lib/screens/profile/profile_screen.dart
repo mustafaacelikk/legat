@@ -22,8 +22,11 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   int _logoTapCount = 0;
   DateTime? _lastLogoTapTime;
+  bool _devMenuOpen = false;
 
   void _onLogoTap() {
+    if (_devMenuOpen) return;
+
     final now = DateTime.now();
     if (_lastLogoTapTime == null ||
         now.difference(_lastLogoTapTime!) > const Duration(seconds: 2)) {
@@ -35,16 +38,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (_logoTapCount >= 7) {
       _logoTapCount = 0;
+      _devMenuOpen = true;
       _showDevMenu();
-    } else if (_logoTapCount >= 4) {
-      // Son birkaç dokunuşta küçük bir ipucu göster
-      final kalan = 7 - _logoTapCount;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$kalan dokunuş daha...'),
-          duration: const Duration(milliseconds: 600),
-        ),
-      );
     }
   }
 
@@ -76,7 +71,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
       ),
-    );
+    ).then((_) {
+      if (mounted) setState(() => _devMenuOpen = false);
+    });
   }
 
   @override
@@ -579,6 +576,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               );
             },
           ),
+          _buildDivider(),
+          _buildSettingsItem(
+            icon: Icons.workspace_premium_outlined,
+            iconColor: AppColors.brand,
+            iconBg: AppColors.brandLight,
+            title: 'Premium Durumu',
+            subtitle: context.watch<SettingsProvider>().isPremium
+                ? 'Aktif ✓'
+                : 'Kapalı',
+            subtitleColor: context.watch<SettingsProvider>().isPremium
+                ? AppColors.successText
+                : AppColors.textSecondary,
+            onTap: null,
+          ),
         ],
       ),
     );
@@ -590,6 +601,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required Color iconBg,
     required String title,
     required String subtitle,
+    Color? subtitleColor,
     Widget? trailing,
     VoidCallback? onTap,
   }) {
@@ -618,8 +630,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           fontWeight: FontWeight.w500,
                           color: AppColors.textPrimary)),
                   Text(subtitle,
-                      style: const TextStyle(
-                          fontSize: 11, color: AppColors.textSecondary)),
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: subtitleColor ?? AppColors.textSecondary)),
                 ],
               ),
             ),
