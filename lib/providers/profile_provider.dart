@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../models/profile_model.dart';
+import '../services/analytics_service.dart';
 
 class ProfileProvider extends ChangeNotifier {
   late Box<Profile> _box;
@@ -50,16 +51,19 @@ class ProfileProvider extends ChangeNotifier {
     profile.id = _uuid.v4();
     profile.createdAt = DateTime.now();
     await _box.put(profile.id, profile);
+    await AnalyticsService.instance.logProfileCreated();
     notifyListeners();
   }
 
   Future<void> update(Profile profile) async {
     await profile.save();
+    await AnalyticsService.instance.logProfileEdited();
     notifyListeners();
   }
 
   Future<void> delete(String id) async {
     await _box.delete(id);
+    await AnalyticsService.instance.logProfileDeleted();
     // Aktif profil silindiyse 'all'e dön
     if (_activeProfileId == id) {
       _activeProfileId = 'all';

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../models/note_model.dart';
+import '../services/analytics_service.dart';
 
 class NoteProvider extends ChangeNotifier {
   late Box<Note> _box;
@@ -25,16 +26,19 @@ class NoteProvider extends ChangeNotifier {
     note.id = _uuid.v4();
     note.createdAt = DateTime.now();
     await _box.put(note.id, note);
+    await AnalyticsService.instance.logNoteCreated();
     notifyListeners();
   }
 
   Future<void> update(Note note) async {
     await note.save();
+    await AnalyticsService.instance.logNoteEdited();
     notifyListeners();
   }
 
   Future<void> delete(String id) async {
     await _box.delete(id);
+    await AnalyticsService.instance.logNoteDeleted();
     notifyListeners();
   }
 }

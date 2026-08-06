@@ -215,15 +215,22 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       initialDate: _reminderDateTime,
       firstDate: now,
       lastDate: DateTime(now.year + 10, 12, 31),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: AppColors.brand,
-            onPrimary: Colors.white,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.brand,
+              onPrimary: Colors.white,
+            ),
           ),
-        ),
-        child: child!,
-      ),
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              viewInsets: EdgeInsets.zero,
+            ),
+            child: child!,
+          ),
+        );
+      },
     );
     if (pickedDate == null || !mounted) return;
     final pickedTime = await NumpadTimePicker.show(

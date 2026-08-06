@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'theme/app_theme.dart';
 import 'providers/task_provider.dart';
 import 'providers/note_provider.dart';
@@ -13,11 +12,11 @@ import 'providers/reminder_provider.dart';
 import 'providers/profile_provider.dart';
 import 'providers/settings_provider.dart';
 import 'services/notification_service.dart';
+import 'services/analytics_service.dart';
 import 'screens/main_screen.dart';
 import 'screens/onboarding/name_entry_screen.dart';
 
 final GlobalKey<MainScreenState> mainScreenKey = GlobalKey<MainScreenState>();
-final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,12 +54,12 @@ void main() async {
   debugPrint('TOPLAM PROFIL SAYISI: ${profileProvider.all.length}');
   await settingsProvider.init();
 
-  await analytics.setUserId(id: settingsProvider.testCode);
+  await AnalyticsService.instance.setUserId(settingsProvider.testCode);
 
   final existingTaskIds = taskProvider.all.map((t) => t.id).toSet();
   await reminderProvider.cleanupOrphaned(existingTaskIds);
 
-  await analytics.logEvent(name: 'app_open');
+  await AnalyticsService.instance.logAppOpen();
 
   runApp(
     MultiProvider(

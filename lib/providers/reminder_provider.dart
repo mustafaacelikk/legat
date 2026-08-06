@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../models/reminder_model.dart';
 import '../services/notification_service.dart';
+import '../services/analytics_service.dart';
 
 class ReminderProvider extends ChangeNotifier {
   static ReminderProvider? instance;
@@ -95,6 +96,7 @@ class ReminderProvider extends ChangeNotifier {
     reminder.id = _uuid.v4();
     reminder.createdAt = DateTime.now();
     await _box.put(reminder.id, reminder);
+    await AnalyticsService.instance.logReminderCreated();
     await _scheduleFor(reminder);
     notifyListeners();
   }
@@ -111,12 +113,14 @@ class ReminderProvider extends ChangeNotifier {
 
   Future<void> update(Reminder reminder) async {
     await reminder.save();
+    await AnalyticsService.instance.logReminderEdited();
     await _scheduleFor(reminder);
     notifyListeners();
   }
 
   Future<void> delete(String id) async {
     await _box.delete(id);
+    await AnalyticsService.instance.logReminderDeleted();
     await NotificationService.instance.cancelNotification(id);
     notifyListeners();
   }

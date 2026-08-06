@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../models/task_model.dart';
+import '../services/analytics_service.dart';
 
 class TaskProvider extends ChangeNotifier {
   late Box<Task> _box;
@@ -45,16 +46,19 @@ class TaskProvider extends ChangeNotifier {
     task.id = _uuid.v4();
     task.createdAt = DateTime.now();
     await _box.put(task.id, task);
+    await AnalyticsService.instance.logTaskCreated();
     notifyListeners();
   }
 
   Future<void> update(Task task) async {
     await task.save();
+    await AnalyticsService.instance.logTaskEdited();
     notifyListeners();
   }
 
   Future<void> delete(String id) async {
     await _box.delete(id);
+    await AnalyticsService.instance.logTaskDeleted();
     notifyListeners();
   }
 }
