@@ -63,24 +63,26 @@
 <body>
 
 <h1>Gizlilik Politikası</h1>
-<p class="updated">LEGAT uygulaması için · Son güncelleme: 05.08.2026</p>
+<p class="updated">LEGAT uygulaması için · Son güncelleme: 06.08.2026</p>
 
 <p>Bu gizlilik politikası, LEGAT ("uygulama", "biz") tarafından geliştirilen mobil uygulamanın kişisel verileri nasıl işlediğini açıklar. LEGAT, kişisel görev, not ve hatırlatıcı yönetimi sağlayan bir üretkenlik uygulamasıdır.</p>
 
 <h2>1. Özet</h2>
-<p>LEGAT, girdiğiniz tüm verileri (görevler, notlar, hatırlatıcılar, profil bilgileri) yalnızca cihazınızda, yerel olarak saklar. Uygulamanın kendi işlettiği hiçbir sunucu, veritabanı veya bulut senkronizasyon hizmeti yoktur. Verileriniz bizimle ya da üçüncü bir tarafla paylaşılmaz.</p>
+<p>LEGAT, girdiğiniz tüm verileri (görevler, notlar, hatırlatıcılar, profil bilgileri, sesli notlar) yalnızca cihazınızda, yerel olarak saklar. Uygulamanın kendi işlettiği hiçbir sunucu, veritabanı veya bulut senkronizasyon hizmeti yoktur. Kapalı beta test sürecinde, anonim kullanım istatistikleri dışında (bkz. Bölüm 5), verileriniz bizimle ya da üçüncü bir tarafla paylaşılmaz.</p>
 
 <h2>2. Topladığımız veriler</h2>
-<p>LEGAT, herhangi bir veriyi kendi sunucularımıza <strong>göndermez</strong>. Aşağıdaki bilgiler yalnızca cihazınızda saklanır:</p>
+<p>LEGAT, aşağıdaki bilgilerin hiçbirini kendi sunucularımıza <strong>göndermez</strong>. Tümü yalnızca cihazınızda saklanır:</p>
 <ul>
   <li><strong>Görev, not ve hatırlatıcı içerikleri</strong> — başlık, açıklama, tarih/saat, öncelik gibi sizin girdiğiniz bilgiler</li>
+  <li><strong>Ad-Soyad</strong> — uygulamayı ilk açtığınızda girdiğiniz ad-soyad, Kişisel profil kartınıza otomatik olarak yazılır ve yalnızca cihazınızda saklanır</li>
+  <li><strong>Sesli not kayıtları</strong> — Notlar bölümünde oluşturduğunuz sesli not ses dosyaları, yalnızca cihazınızın yerel deposunda tutulur, hiçbir sunucuya yüklenmez</li>
   <li><strong>Profil bilgileri</strong> — oluşturduğunuz profillerin adı, rengi, isteğe bağlı kartvizit bilgileri (ad, e-posta, telefon, şirket vb.)</li>
   <li><strong>Rehber bilgileri</strong> — bir hatırlatıcıya kişi eklemek istediğinizde, telefonunuzun rehberinden seçtiğiniz kişinin adı ve telefon numarası, yalnızca o hatırlatıcı kaydına eklenmek üzere kopyalanır</li>
   <li><strong>Uygulama ayarları</strong> — bildirim tercihleri, tema ayarları gibi kullanım tercihleri</li>
 </ul>
 
 <div class="note">
-Bu bilgilerin hiçbiri, uygulama tarafından herhangi bir sunucuya iletilmez. Tüm veriler, cihazınızdaki yerel bir veritabanında (Hive) tutulur.
+Bu bilgilerin hiçbiri, uygulama tarafından herhangi bir sunucuya iletilmez. Tüm veriler, cihazınızdaki yerel bir veritabanında (Hive) veya yerel dosya deposunda tutulur.
 </div>
 
 <h2>3. Cihaz izinleri</h2>
@@ -89,6 +91,7 @@ Bu bilgilerin hiçbiri, uygulama tarafından herhangi bir sunucuya iletilmez. T�
 <tr><th>İzin</th><th>Amaç</th></tr>
 <tr><td>Rehber Erişimi</td><td>Hatırlatıcıya kişi eklerken, telefon rehberinizden isim/numara seçebilmeniz için</td></tr>
 <tr><td>Arama</td><td>Hatırlatıcı kartındaki "Ara" butonuyla doğrudan arama başlatabilmeniz için</td></tr>
+<tr><td>Mikrofon</td><td>Notlar bölümünde sesli not kaydedebilmeniz için</td></tr>
 <tr><td>Bildirimler</td><td>Hatırlatıcı ve görev bildirimlerini gösterebilmek için</td></tr>
 <tr><td>Kesin Zamanlı Alarm</td><td>Hatırlatıcıların tam belirlediğiniz saatte tetiklenebilmesi için</td></tr>
 <tr><td>Açılışta Başlatma</td><td>Telefon yeniden başlatıldığında planlanmış hatırlatıcıların kaybolmaması için</td></tr>
@@ -106,10 +109,22 @@ Bu bilgilerin hiçbiri, uygulama tarafından herhangi bir sunucuya iletilmez. T�
 <h3>Yazı tipi yükleme (Google Fonts)</h3>
 <p>Uygulama, arayüz yazı tipini (Inter) ilk çalıştırmada Google'ın sunucularından indirebilir (<code>google_fonts</code> paketi aracılığıyla). Bu işlem sırasında Google'a standart ağ isteği bilgileri (IP adresi gibi) iletilebilir; bu, Google'ın kendi gizlilik politikasına tabidir. Bu istek, kişisel verilerinizi (görev/not içerikleriniz, rehber bilgileriniz vb.) içermez, yalnızca yazı tipi dosyasının indirilmesiyle sınırlıdır.</p>
 
-<h2>5. Veri paylaşımı</h2>
-<p>LEGAT, verilerinizi hiçbir üçüncü tarafla, reklam ağıyla veya analitik hizmetiyle paylaşmaz, satmaz veya kiralamaz. Uygulamada herhangi bir analiz (analytics), çökme raporlama (crash reporting) veya reklam SDK'sı bulunmamaktadır.</p>
+<h2>5. Analiz (Analytics) — yalnızca beta test aşamasında</h2>
+<p>LEGAT şu anda kapalı bir beta test sürecindedir. Bu süreçte, uygulamanın nasıl kullanıldığını anlayabilmek için (örneğin hangi özelliklerin ne sıklıkla kullanıldığı, uygulamanın kaç kez açıldığı) Google Firebase Analytics kullanılmaktadır. Bu kapsamda:</p>
+<ul>
+  <li>Toplanan kullanım verileri, yalnızca <strong>anonim, rastgele üretilmiş bir test kodu</strong> (ör. "T-4821" biçiminde) ile ilişkilendirilir.</li>
+  <li>Adınız, e-posta adresiniz, telefon numaranız veya girdiğiniz herhangi bir görev/not/hatırlatıcı içeriği <strong>Firebase'e hiçbir zaman gönderilmez</strong>.</li>
+  <li>Takip edilen olaylar yalnızca uygulama içi eylem türleridir (örn. "görev oluşturuldu", "not silindi", "uygulama açıldı") — bu olayların içeriği (görevin başlığı, notun metni vb.) gönderilmez, yalnızca ilgili eylemin gerçekleştiği bilgisi gönderilir.</li>
+  <li>Bu analiz altyapısı Google'ın kendi gizlilik politikasına tabidir.</li>
+</ul>
+<div class="note">
+Bu özellik yalnızca kapalı beta test süreci için etkinleştirilmiştir. Uygulamanın genel kullanıma (Play Store) açık sürümünde bu özelliğin kaldırılıp kaldırılmayacağına ayrıca karar verilecek ve bu politika buna göre güncellenecektir.
+</div>
 
-<h2>6. Veri saklama ve silme</h2>
+<h2>6. Veri paylaşımı</h2>
+<p>Yukarıda açıklanan beta test analitiği (bkz. Bölüm 5) dışında, LEGAT verilerinizi hiçbir üçüncü tarafla, reklam ağıyla veya başka bir analitik hizmetiyle paylaşmaz, satmaz veya kiralamaz. Uygulamada reklam SDK'sı veya çökme raporlama (crash reporting) hizmeti bulunmamaktadır.</p>
+
+<h2>7. Veri saklama ve silme</h2>
 <p>Tüm verileriniz cihazınızda kaldığı için, verilerinizin kontrolü tamamen sizdedir:</p>
 <ul>
   <li>Uygulama içinden istediğiniz görev/not/hatırlatıcı/profili istediğiniz zaman silebilirsiniz.</li>
@@ -117,13 +132,13 @@ Bu bilgilerin hiçbiri, uygulama tarafından herhangi bir sunucuya iletilmez. T�
   <li>Bu verilerin bizde ayrıca bir kopyası bulunmadığı için, uygulamayı kaldırdıktan sonra verilerinizin geri getirilmesi mümkün değildir.</li>
 </ul>
 
-<h2>7. Çocukların gizliliği</h2>
+<h2>8. Çocukların gizliliği</h2>
 <p>LEGAT, çocuklara yönelik bir uygulama değildir ve bilerek 13 yaşın altındaki çocuklardan veri toplamaz.</p>
 
-<h2>8. Bu politikadaki değişiklikler</h2>
+<h2>9. Bu politikadaki değişiklikler</h2>
 <p>Bu gizlilik politikası zaman zaman güncellenebilir. Önemli değişiklikler bu sayfada yayınlanacak ve sayfanın üst kısmındaki "Son güncelleme" tarihi buna göre değiştirilecektir.</p>
 
-<h2>9. İletişim</h2>
+<h2>10. İletişim</h2>
 <p>Bu gizlilik politikasıyla ilgili sorularınız için bize ulaşabilirsiniz:</p>
 <p>E-posta: <strong>iletisim@ivmova.com</strong></p>
 
