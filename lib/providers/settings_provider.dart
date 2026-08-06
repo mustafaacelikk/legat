@@ -11,6 +11,7 @@ class SettingsProvider extends ChangeNotifier {
   String _fabHPosition = 'center'; // 'left' | 'center' | 'right'
   bool _onboardingCompleted = false;
   String _testCode = '';
+  bool _isPremium = true;
 
   int get upcomingDays => _upcomingDays;
   bool get notificationPermissionAsked => _notificationPermissionAsked;
@@ -18,6 +19,7 @@ class SettingsProvider extends ChangeNotifier {
   String get fabHPosition => _fabHPosition;
   bool get onboardingCompleted => _onboardingCompleted;
   String get testCode => _testCode;
+  bool get isPremium => _isPremium;
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -28,6 +30,7 @@ class SettingsProvider extends ChangeNotifier {
     _fabHPosition = _prefs.getString('fab_h_position') ?? 'center';
     _onboardingCompleted = _prefs.getBool('onboarding_completed') ?? false;
     _testCode = _prefs.getString('test_code') ?? '';
+    _isPremium = _prefs.getBool('is_premium') ?? true;
     if (_testCode.isEmpty) {
       final code = 'T-${1000 + Random().nextInt(9000)}';
       _testCode = code;
@@ -59,6 +62,12 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> setOnboardingCompleted(bool value) async {
     _onboardingCompleted = value;
     await _prefs.setBool('onboarding_completed', value);
+    notifyListeners();
+  }
+
+  Future<void> setPremium(bool value) async {
+    _isPremium = value;
+    await _prefs.setBool('is_premium', value);
     notifyListeners();
   }
 }

@@ -20,6 +20,65 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  int _logoTapCount = 0;
+  DateTime? _lastLogoTapTime;
+
+  void _onLogoTap() {
+    final now = DateTime.now();
+    if (_lastLogoTapTime == null ||
+        now.difference(_lastLogoTapTime!) > const Duration(seconds: 2)) {
+      _logoTapCount = 1;
+    } else {
+      _logoTapCount++;
+    }
+    _lastLogoTapTime = now;
+
+    if (_logoTapCount >= 7) {
+      _logoTapCount = 0;
+      _showDevMenu();
+    } else if (_logoTapCount >= 4) {
+      // Son birkaç dokunuşta küçük bir ipucu göster
+      final kalan = 7 - _logoTapCount;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$kalan dokunuş daha...'),
+          duration: const Duration(milliseconds: 600),
+        ),
+      );
+    }
+  }
+
+  void _showDevMenu() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Geliştirici Menüsü'),
+        content: Consumer<SettingsProvider>(
+          builder: (context, settings, _) => Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Expanded(
+                child: Text('Premium (isPremium)',
+                    style: TextStyle(fontWeight: FontWeight.w500)),
+              ),
+              Switch(
+                value: settings.isPremium,
+                activeThumbColor: AppColors.brand,
+                onChanged: (v) => settings.setPremium(v),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Kapat'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileProvider = context.watch<ProfileProvider>();
@@ -86,8 +145,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Row(
                   children: [
-                    Image.asset('assets/icon/icon_white.png',
-                        width: 20, height: 20),
+                    GestureDetector(
+                      onTap: _onLogoTap,
+                      child: Image.asset('assets/icon/icon_white.png',
+                          width: 20, height: 20),
+                    ),
                     const SizedBox(width: 8),
                     const Text('Profil & Ayarlar',
                         style: TextStyle(
