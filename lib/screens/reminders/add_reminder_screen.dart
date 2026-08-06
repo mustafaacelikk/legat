@@ -6,13 +6,22 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/reminder_model.dart';
 import '../../providers/reminder_provider.dart';
 import '../../providers/profile_provider.dart';
+import '../../providers/note_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/numpad_time_picker.dart';
 
 class AddReminderScreen extends StatefulWidget {
   final Reminder? reminder;
   final DateTime? initialDate;
-  const AddReminderScreen({super.key, this.reminder, this.initialDate});
+  final String? initialTitle;
+  final String? sourceNoteId;
+  const AddReminderScreen({
+    super.key,
+    this.reminder,
+    this.initialDate,
+    this.initialTitle,
+    this.sourceNoteId,
+  });
 
   @override
   State<AddReminderScreen> createState() => _AddReminderScreenState();
@@ -64,7 +73,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   void initState() {
     super.initState();
     _titleController = TextEditingController(
-      text: widget.reminder?.title ?? '',
+      text: widget.reminder?.title ?? widget.initialTitle ?? '',
     );
     if (widget.initialDate != null) {
       _scheduledAt = DateTime(
@@ -166,6 +175,19 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     _contactFocus.dispose();
     _phoneFocus.dispose();
     super.dispose();
+  }
+
+  void _markSourceNoteConverted() {
+    if (widget.sourceNoteId == null) return;
+    try {
+      final noteProvider = context.read<NoteProvider>();
+      final note =
+          noteProvider.all.firstWhere((n) => n.id == widget.sourceNoteId);
+      note.convertedToTask = true;
+      noteProvider.update(note);
+    } catch (_) {
+      // not bulunamadıysa sessizce geç, hatırlatıcı kaydı zaten başarılı oldu
+    }
   }
 
   Future<void> _pickDateTime() async {
@@ -346,6 +368,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             ? _quickMessageController.text.trim()
             : null,
       ));
+      _markSourceNoteConverted();
     }
 
     _dirty = false;
@@ -406,6 +429,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             ? _quickMessageController.text.trim()
             : null,
       ));
+    }
+
+    if (widget.reminder == null) {
+      _markSourceNoteConverted();
     }
 
     _dirty = false;

@@ -5,13 +5,24 @@ import '../../models/reminder_model.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/reminder_provider.dart';
 import '../../providers/profile_provider.dart';
+import '../../providers/note_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/numpad_time_picker.dart';
 
 class AddTaskScreen extends StatefulWidget {
   final Task? task;
   final DateTime? initialDueDate;
-  const AddTaskScreen({super.key, this.task, this.initialDueDate});
+  final String? initialTitle;
+  final String? initialDescription;
+  final String? sourceNoteId;
+  const AddTaskScreen({
+    super.key,
+    this.task,
+    this.initialDueDate,
+    this.initialTitle,
+    this.initialDescription,
+    this.sourceNoteId,
+  });
 
   @override
   State<AddTaskScreen> createState() => _AddTaskScreenState();
@@ -77,6 +88,13 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
           _reminderType = _existingReminder!.type;
         }
       }
+    } else {
+      if (widget.initialTitle != null) {
+        _titleController.text = widget.initialTitle!;
+      }
+      if (widget.initialDescription != null) {
+        _descController.text = widget.initialDescription!;
+      }
     }
 
     _titleController.addListener(() {
@@ -94,6 +112,19 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     _titleFocus.dispose();
     _descFocus.dispose();
     super.dispose();
+  }
+
+  void _markSourceNoteConverted() {
+    if (widget.sourceNoteId == null) return;
+    try {
+      final noteProvider = context.read<NoteProvider>();
+      final note =
+          noteProvider.all.firstWhere((n) => n.id == widget.sourceNoteId);
+      note.convertedToTask = true;
+      noteProvider.update(note);
+    } catch (_) {
+      // not bulunamadıysa sessizce geç, görev kaydı zaten başarılı oldu
+    }
   }
 
   Future<void> _pickDate() async {
@@ -278,6 +309,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
         completionPercent: _completion,
       );
       await taskProvider.add(newTask);
+      _markSourceNoteConverted();
 
       if (_reminderEnabled) {
         reminderProvider.add(Reminder(

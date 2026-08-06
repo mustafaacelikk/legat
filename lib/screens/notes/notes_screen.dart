@@ -8,9 +8,9 @@ import '../../providers/profile_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../models/note_model.dart';
 import '../../services/calendar_intent_service.dart';
+import '../tasks/add_task_screen.dart';
+import '../reminders/add_reminder_screen.dart';
 import 'add_note_screen.dart';
-import 'convert_to_task_screen.dart';
-import 'convert_to_reminder_screen.dart';
 
 class NotesScreen extends StatefulWidget {
   const NotesScreen({super.key});
@@ -504,10 +504,25 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
+  String _titleForConversion(Note note) {
+    return note.title.trim().isEmpty
+        ? (note.content.length > 50
+            ? note.content.substring(0, 50)
+            : note.content)
+        : note.title;
+  }
+
   void _convertToTask(Note note) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => ConvertToTaskScreen(note: note)),
+      MaterialPageRoute(
+        builder: (_) => AddTaskScreen(
+          initialTitle: _titleForConversion(note),
+          initialDescription:
+              note.content.trim().isEmpty ? null : note.content,
+          sourceNoteId: note.id,
+        ),
+      ),
     );
   }
 
@@ -577,7 +592,10 @@ class _NotesScreenState extends State<NotesScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => ConvertToReminderScreen(note: note),
+                    builder: (_) => AddReminderScreen(
+                      initialTitle: _titleForConversion(note),
+                      sourceNoteId: note.id,
+                    ),
                   ),
                 );
               },
