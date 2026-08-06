@@ -1,5 +1,11 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:record/record.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../models/note_model.dart';
 import '../../providers/note_provider.dart';
 import '../../providers/profile_provider.dart';
@@ -19,8 +25,21 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
   final _titleFocus = FocusNode();
   final _contentFocus = FocusNode();
   String _profileId = 'personal';
-  bool _isVoice = false;
   bool _dirty = false;
+
+  final _audioRecorder = AudioRecorder();
+  final _audioPlayer = AudioPlayer();
+  String? _audioPath;
+  int _audioDurationSeconds = 0;
+  bool _isRecording = false;
+  bool _isPlaying = false;
+  int _recordElapsedSeconds = 0;
+  Duration _playbackPosition = Duration.zero;
+  Timer? _recordTimer;
+  StreamSubscription<Duration>? _positionSub;
+  StreamSubscription<void>? _completeSub;
+
+  static const _maxRecordSeconds = 300;
 
   @override
   void initState() {
@@ -30,7 +49,8 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
       _titleController.text = n.title;
       _contentController.text = n.content;
       _profileId = n.profileId;
-      _isVoice = n.isVoice;
+      _audioPath = n.audioPath;
+      _audioDurationSeconds = n.audioDurationSeconds;
     }
 
     _titleController.addListener(() {
@@ -38,6 +58,18 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
     });
     _contentController.addListener(() {
       if (!_dirty) setState(() => _dirty = true);
+    });
+
+    _positionSub = _audioPlayer.onPositionChanged.listen((pos) {
+      if (mounted) setState(() => _playbackPosition = pos);
+    });
+    _completeSub = _audioPlayer.onPlayerComplete.listen((_) {
+      if (mounted) {
+        setState(() {
+          _isPlaying = false;
+          _playbackPosition = Duration.zero;
+        });
+      }
     });
   }
 
@@ -47,14 +79,115 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
     _contentController.dispose();
     _titleFocus.dispose();
     _contentFocus.dispose();
+    _recordTimer?.cancel();
+    _positionSub?.cancel();
+    _completeSub?.cancel();
+    _audioRecorder.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
+  String _formatDuration(int totalSeconds) {
+    final m = (totalSeconds ~/ 60).toString().padLeft(2, '0');
+    final s = (totalSeconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  Future<void> _startRecording() async {
+    final hasPermission = await _audioRecorder.hasPermission();
+    if (!hasPermission) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Mikrofon izni gerekli')),
+        );
+      }
+      return;
+    }
+
+    if (_audioPath != null) {
+      final oldFile = File(_audioPath!);
+      if (await oldFile.exists()) {
+        await oldFile.delete();
+      }
+    }
+
+    final dir = await getApplicationDocumentsDirectory();
+    final newPath =
+        '${dir.path}/note_audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+    await _audioRecorder.start(
+      const RecordConfig(
+        encoder: AudioEncoder.aacLc,
+        bitRate: 64000,
+        numChannels: 1,
+      ),
+      path: newPath,
+    );
+
+    setState(() {
+      _isRecording = true;
+      _recordElapsedSeconds = 0;
+    });
+
+    _recordTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() => _recordElapsedSeconds++);
+      if (_recordElapsedSeconds >= _maxRecordSeconds) {
+        _stopRecording();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('5 dakikalık süre doldu, kayıt otomatik durduruldu')),
+          );
+        }
+      }
+    });
+  }
+
+  Future<void> _stopRecording() async {
+    _recordTimer?.cancel();
+    final path = await _audioRecorder.stop();
+    setState(() {
+      _isRecording = false;
+      _audioPath = path;
+      _audioDurationSeconds = _recordElapsedSeconds;
+      _dirty = true;
+    });
+  }
+
+  Future<void> _deleteAudio() async {
+    if (_isPlaying) {
+      await _audioPlayer.stop();
+    }
+    if (_audioPath != null) {
+      final file = File(_audioPath!);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    }
+    setState(() {
+      _audioPath = null;
+      _audioDurationSeconds = 0;
+      _isPlaying = false;
+      _playbackPosition = Duration.zero;
+      _dirty = true;
+    });
+  }
+
+  Future<void> _playAudio() async {
+    if (_audioPath == null) return;
+    await _audioPlayer.play(DeviceFileSource(_audioPath!));
+    setState(() => _isPlaying = true);
+  }
+
+  Future<void> _pauseAudio() async {
+    await _audioPlayer.pause();
+    setState(() => _isPlaying = false);
+  }
+
   void _save() {
-    if (_contentController.text.trim().isEmpty &&
-        _titleController.text.trim().isEmpty) {
+    if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Not içeriği boş olamaz')),
+        const SnackBar(content: Text('Not başlığı boş olamaz')),
       );
       return;
     }
@@ -66,15 +199,20 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
       n.title = _titleController.text.trim();
       n.content = _contentController.text.trim();
       n.profileId = _profileId;
+      n.audioPath = _audioPath;
+      n.audioDurationSeconds = _audioDurationSeconds;
+      n.isVoice = _audioPath != null;
       provider.update(n);
     } else {
       provider.add(Note(
         id: '',
         title: _titleController.text.trim(),
         content: _contentController.text.trim(),
-        isVoice: _isVoice,
+        isVoice: _audioPath != null,
         profileId: _profileId,
         createdAt: DateTime.now(),
+        audioPath: _audioPath,
+        audioDurationSeconds: _audioDurationSeconds,
       ));
     }
 
@@ -94,9 +232,17 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
             child: const Text('İptal'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              context.read<NoteProvider>().delete(widget.note!.id);
+              final note = widget.note!;
+              if (note.audioPath != null) {
+                final file = File(note.audioPath!);
+                if (await file.exists()) {
+                  await file.delete();
+                }
+              }
+              if (!mounted) return;
+              context.read<NoteProvider>().delete(note.id);
               _dirty = false;
               Navigator.pop(context);
             },
@@ -172,11 +318,11 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
             padding: const EdgeInsets.all(16),
             children: [
               _buildCard(children: [
-                _buildLabel('Başlık (opsiyonel)'),
+                _buildLabel('Başlık'),
                 TextField(
                   controller: _titleController,
                   focusNode: _titleFocus,
-                  decoration: const InputDecoration(hintText: 'Not başlığı...'),
+                  decoration: const InputDecoration(hintText: 'Başlık'),
                   textCapitalization: TextCapitalization.sentences,
                   autofocus: !isEdit,
                   textInputAction: TextInputAction.next,
@@ -196,22 +342,9 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
               ]),
               const SizedBox(height: 12),
               _buildCard(children: [
-                _buildLabel('Not Türü'),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _typeChip('Metin', false),
-                    const SizedBox(width: 8),
-                    _typeChip('Sesli', true),
-                    const SizedBox(width: 8),
-                    if (_isVoice)
-                      const Text(
-                        '(Yakında)',
-                        style: TextStyle(
-                            fontSize: 10, color: AppColors.textSecondary),
-                      ),
-                  ],
-                ),
+                _buildLabel('Sesli Not'),
+                const SizedBox(height: 12),
+                _buildAudioSection(),
               ]),
               const SizedBox(height: 12),
               _buildCard(children: [
@@ -275,40 +408,99 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
     );
   }
 
-  Widget _typeChip(String label, bool isVoiceType) {
-    final isSelected = _isVoice == isVoiceType;
-    return GestureDetector(
-      onTap: () => setState(() {
-        _dirty = true;
-        _isVoice = isVoiceType;
-      }),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.brandLight : AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? AppColors.brandMid : AppColors.divider,
-            width: isSelected ? 1.5 : 0.5,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isVoiceType ? Icons.mic : Icons.notes,
-              size: 14,
-              color: isSelected ? AppColors.brandMid : AppColors.textSecondary,
+  Widget _buildAudioSection() {
+    if (_isRecording) {
+      return Column(
+        children: [
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.9, end: 1.1),
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeInOut,
+            builder: (context, scale, child) {
+              return Transform.scale(scale: scale, child: child);
+            },
+            child: Container(
+              width: 64,
+              height: 64,
+              decoration: const BoxDecoration(
+                color: AppColors.dangerText,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.mic, color: Colors.white, size: 32),
             ),
-            const SizedBox(width: 6),
-            Text(label,
-                style: TextStyle(
-                  fontSize: 13,
-                  color:
-                      isSelected ? AppColors.brandMid : AppColors.textSecondary,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                )),
-          ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '${_formatDuration(_recordElapsedSeconds)} / ${_formatDuration(_maxRecordSeconds)}',
+            style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _stopRecording,
+            icon: const Icon(Icons.stop, size: 18),
+            label: const Text('Durdur'),
+          ),
+        ],
+      );
+    }
+
+    if (_audioPath != null) {
+      final total = _audioDurationSeconds;
+      final elapsed = _playbackPosition.inSeconds.clamp(0, total);
+      final progress = total > 0 ? elapsed / total : 0.0;
+      return Row(
+        children: [
+          IconButton(
+            onPressed: _isPlaying ? _pauseAudio : _playAudio,
+            icon: Icon(
+              _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill,
+              color: AppColors.brand,
+              size: 36,
+            ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress.toDouble(),
+                    minHeight: 6,
+                    backgroundColor: AppColors.brandLight,
+                    valueColor:
+                        const AlwaysStoppedAnimation<Color>(AppColors.brand),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${_formatDuration(elapsed)} / ${_formatDuration(total)}',
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: _deleteAudio,
+            icon: const Icon(Icons.delete_outline,
+                color: AppColors.dangerText, size: 22),
+          ),
+        ],
+      );
+    }
+
+    return Center(
+      child: OutlinedButton.icon(
+        onPressed: _startRecording,
+        icon: const Icon(Icons.mic),
+        label: const Text('Sesli Not Kaydet'),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          side: const BorderSide(color: AppColors.brandMid),
         ),
       ),
     );

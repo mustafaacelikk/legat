@@ -24,13 +24,15 @@ class NoteAdapter extends TypeAdapter<Note> {
       profileId: fields[4] as String,
       createdAt: fields[5] as DateTime,
       convertedToTask: fields[6] as bool,
+      audioPath: fields[7] as String?,
+      audioDurationSeconds: fields[8] as int,
     );
   }
 
   @override
   void write(BinaryWriter writer, Note obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -44,7 +46,11 @@ class NoteAdapter extends TypeAdapter<Note> {
       ..writeByte(5)
       ..write(obj.createdAt)
       ..writeByte(6)
-      ..write(obj.convertedToTask);
+      ..write(obj.convertedToTask)
+      ..writeByte(7)
+      ..write(obj.audioPath)
+      ..writeByte(8)
+      ..write(obj.audioDurationSeconds);
   }
 
   @override

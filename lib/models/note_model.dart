@@ -25,6 +25,12 @@ class Note extends HiveObject {
   @HiveField(6)
   bool convertedToTask;
 
+  @HiveField(7)
+  String? audioPath;
+
+  @HiveField(8)
+  int audioDurationSeconds;
+
   Note({
     required this.id,
     required this.title,
@@ -33,5 +39,7 @@ class Note extends HiveObject {
     required this.profileId,
     required this.createdAt,
     this.convertedToTask = false,
+    this.audioPath,
+    this.audioDurationSeconds = 0,
   });
 }

@@ -17,7 +17,8 @@ class ConvertToReminderScreen extends StatefulWidget {
 }
 
 class _ConvertToReminderScreenState extends State<ConvertToReminderScreen> {
-  late String _title;
+  late final TextEditingController _titleController;
+  final _titleFocus = FocusNode();
   late String _profileId;
   String _type = 'Zamanlı';
   DateTime _scheduledAt = DateTime.now().add(const Duration(hours: 1));
@@ -29,12 +30,21 @@ class _ConvertToReminderScreenState extends State<ConvertToReminderScreen> {
   @override
   void initState() {
     super.initState();
-    _title = widget.note.title.isEmpty
-        ? (widget.note.content.length > 50
-            ? widget.note.content.substring(0, 50)
-            : widget.note.content)
-        : widget.note.title;
+    _titleController = TextEditingController(
+      text: widget.note.title.isEmpty
+          ? (widget.note.content.length > 50
+              ? widget.note.content.substring(0, 50)
+              : widget.note.content)
+          : widget.note.title,
+    );
     _profileId = widget.note.profileId;
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _titleFocus.dispose();
+    super.dispose();
   }
 
   Future<void> _pickDateTime() async {
@@ -81,12 +91,21 @@ class _ConvertToReminderScreenState extends State<ConvertToReminderScreen> {
   }
 
   void _save() {
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Başlık boş olamaz')),
+      );
+      return;
+    }
+
     final reminderProvider = context.read<ReminderProvider>();
     final noteProvider = context.read<NoteProvider>();
 
+    final trimmedTitle = _titleController.text.trim();
+
     reminderProvider.add(Reminder(
       id: '',
-      title: _title,
+      title: trimmedTitle,
       type: _type,
       scheduledAt: _scheduledAt,
       profileId: _profileId,
@@ -131,18 +150,37 @@ class _ConvertToReminderScreenState extends State<ConvertToReminderScreen> {
             _buildCard(children: [
               _buildLabel('Hatırlatıcı Başlığı'),
               const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.brandLight,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.brandBorder, width: 0.5),
+              TextField(
+                controller: _titleController,
+                focusNode: _titleFocus,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+                textCapitalization: TextCapitalization.sentences,
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.brandMid),
+                decoration: InputDecoration(
+                  hintText: 'Başlık girin',
+                  filled: true,
+                  fillColor: AppColors.brandLight,
+                  contentPadding: const EdgeInsets.all(12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide:
+                        const BorderSide(color: AppColors.brandBorder, width: 0.5),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide:
+                        const BorderSide(color: AppColors.brandBorder, width: 0.5),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide:
+                        const BorderSide(color: AppColors.brandMid, width: 1.5),
+                  ),
                 ),
-                child: Text(_title,
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.brandMid)),
               ),
             ]),
             const SizedBox(height: 12),

@@ -18,7 +18,8 @@ class ConvertToTaskScreen extends StatefulWidget {
 }
 
 class _ConvertToTaskScreenState extends State<ConvertToTaskScreen> {
-  late String _title;
+  late final TextEditingController _titleController;
+  final _titleFocus = FocusNode();
   String _priority = 'Orta';
   String _status = 'Planlı';
   late String _profileId;
@@ -33,12 +34,21 @@ class _ConvertToTaskScreenState extends State<ConvertToTaskScreen> {
   @override
   void initState() {
     super.initState();
-    _title = widget.note.title.isEmpty
-        ? (widget.note.content.length > 50
-            ? widget.note.content.substring(0, 50)
-            : widget.note.content)
-        : widget.note.title;
+    _titleController = TextEditingController(
+      text: widget.note.title.isEmpty
+          ? (widget.note.content.length > 50
+              ? widget.note.content.substring(0, 50)
+              : widget.note.content)
+          : widget.note.title,
+    );
     _profileId = widget.note.profileId;
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _titleFocus.dispose();
+    super.dispose();
   }
 
   Future<void> _pickDate() async {
@@ -71,15 +81,23 @@ class _ConvertToTaskScreenState extends State<ConvertToTaskScreen> {
   }
 
   void _save() {
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Başlık boş olamaz')),
+      );
+      return;
+    }
+
     final taskProvider = context.read<TaskProvider>();
     final noteProvider = context.read<NoteProvider>();
     final reminderProvider = context.read<ReminderProvider>();
 
+    final trimmedTitle = _titleController.text.trim();
     final status = _status == 'Yapılacak' ? 'Backlog' : _status;
 
     taskProvider.add(Task(
       id: '',
-      title: _title,
+      title: trimmedTitle,
       description: widget.note.content,
       priority: _priority,
       status: status,
@@ -92,7 +110,7 @@ class _ConvertToTaskScreenState extends State<ConvertToTaskScreen> {
     if (_reminderEnabled && _dueDate != null) {
       reminderProvider.add(Reminder(
         id: '',
-        title: '"$_title" görevi için hatırlatıcı',
+        title: '"$trimmedTitle" görevi için hatırlatıcı',
         type: _reminderPeriod,
         scheduledAt: DateTime(
           _dueDate!.year,
@@ -144,18 +162,37 @@ class _ConvertToTaskScreenState extends State<ConvertToTaskScreen> {
             _buildCard(children: [
               _buildLabel('Görev Başlığı'),
               const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.brandLight,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.brandBorder, width: 0.5),
+              TextField(
+                controller: _titleController,
+                focusNode: _titleFocus,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+                textCapitalization: TextCapitalization.sentences,
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.brandMid),
+                decoration: InputDecoration(
+                  hintText: 'Başlık girin',
+                  filled: true,
+                  fillColor: AppColors.brandLight,
+                  contentPadding: const EdgeInsets.all(12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide:
+                        const BorderSide(color: AppColors.brandBorder, width: 0.5),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide:
+                        const BorderSide(color: AppColors.brandBorder, width: 0.5),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide:
+                        const BorderSide(color: AppColors.brandMid, width: 1.5),
+                  ),
                 ),
-                child: Text(_title,
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.brandMid)),
               ),
             ]),
             const SizedBox(height: 12),
